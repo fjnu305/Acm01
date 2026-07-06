@@ -1,6 +1,21 @@
+server:
+  port: 8080
+
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/acm
-    password: 123456
+    url: jdbc:mysql://localhost:3306/acm?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
+    password: 123456
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  expiration: 86400000
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true

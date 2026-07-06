@@ -1,1 +1,4 @@
 /src/main/resources/jwt-secret.key
+/target/
+.idea/
+*.iml
