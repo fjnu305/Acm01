@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- contest 表 Mapper，结构见 module-2-contest-crawler.md §3.1 -->
+
+<mapper namespace="org.fjnu305.acm01.module.contest.mapper.ContestMapper">
+
+
+
+    <resultMap id="ContestResultMap" type="org.fjnu305.acm01.module.contest.entity.ContestEntity">
+
+        <id property="id" column="id"/>
+
+        <result property="source" column="source"/>
+
+        <result property="externalId" column="external_id"/>
+
+        <result property="title" column="title"/>
+
+        <result property="description" column="description"/>
+
+        <result property="url" column="url"/>
+
+        <result property="startTime" column="start_time"/>
+
+        <result property="endTime" column="end_time"/>
+
+        <result property="registerStart" column="register_start"/>
+
+        <result property="registerEnd" column="register_end"/>
+
+        <result property="status" column="status"/>
+
+        <result property="difficulty" column="difficulty"/>
+
+        <result property="contestType" column="contest_type"/>
+
+        <result property="location" column="location"/>
+
+        <result property="rawHash" column="raw_hash"/>
+
+        <result property="lastCrawledAt" column="last_crawled_at"/>
+
+        <result property="createdTime" column="created_time"/>
+
+        <result property="updatedTime" column="updated_time"/>
+
+        <result property="deleted" column="deleted"/>
+
+    </resultMap>
+
+
+
+    <sql id="Base_Column_List">
+
+        id, source, external_id, title, description, url,
+
+        start_time, end_time, register_start, register_end,
+
+        status, difficulty, contest_type, location, raw_hash,
+
+        last_crawled_at, created_time, updated_time, deleted
+
+    </sql>
+
+
+
+    <!-- 按 uk_source_external(source, external_id) 查重，deleted=0 -->
+
+    <select id="selectBySourceAndExternalId" resultMap="ContestResultMap">
+
+        SELECT <include refid="Base_Column_List"/>
+
+        FROM contest
+
+        WHERE source = #{source}
+
+          AND external_id = #{externalId}
+
+          AND deleted = 0
+
+        LIMIT 1
+
+    </select>
+
+
+
+    <!-- 新赛事 INSERT，last_crawled_at=NOW()，created_time/updated_time 由库默认 -->
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+
+        INSERT INTO contest (
+
+            source, external_id, title, description, url,
+
+            start_time, end_time, register_start, register_end,
+
+            status, difficulty, contest_type, location, raw_hash,
+
+            last_crawled_at, deleted
+
+        ) VALUES (
+
+            #{source}, #{externalId}, #{title}, #{description}, #{url},
+
+            #{startTime}, #{endTime}, #{registerStart}, #{registerEnd},
+
+            #{status}, #{difficulty}, #{contestType}, #{location}, #{rawHash},
+
+            NOW(), 0
+
+        )
+
+    </insert>
+
+
+
+    <!-- 批量查重：仅 source / external_id / raw_hash -->
+    <select id="selectRawHashByKeys" resultMap="ContestResultMap">
+        SELECT source, external_id, raw_hash
+        FROM contest
+        WHERE deleted = 0
+          AND (source, external_id) IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            (#{item.source}, #{item.externalId})
+        </foreach>
+    </select>
+
+    <!-- 批量 INSERT 新赛事 -->
+    <insert id="batchInsert">
+        INSERT INTO contest (
+            source, external_id, title, description, url,
+            start_time, end_time, register_start, register_end,
+            status, difficulty, contest_type, location, raw_hash,
+            last_crawled_at, deleted
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.source}, #{item.externalId}, #{item.title}, #{item.description}, #{item.url},
+                #{item.startTime}, #{item.endTime}, #{item.registerStart}, #{item.registerEnd},
+                #{item.status}, #{item.difficulty}, #{item.contestType}, #{item.location}, #{item.rawHash},
+                NOW(), 0
+            )
+        </foreach>
+    </insert>
+
+
+
+    <!-- raw_hash 变化时 UPDATE，刷新 last_crawled_at -->
+
+    <update id="updateBySourceAndExternalId">
+
+        UPDATE contest
+
+        SET title           = #{title},
+
+            description     = #{description},
+
+            url             = #{url},
+
+            start_time      = #{startTime},
+
+            end_time        = #{endTime},
+
+            register_start  = #{registerStart},
+
+            register_end    = #{registerEnd},
+
+            status          = #{status},
+
+            difficulty      = #{difficulty},
+
+            contest_type    = #{contestType},
+
+            location        = #{location},
+
+            raw_hash        = #{rawHash},
+
+            last_crawled_at = NOW()
+
+        WHERE source = #{source}
+
+          AND external_id = #{externalId}
+
+          AND deleted = 0
+
+    </update>
+
+    <sql id="Page_Where_Clause">
+        WHERE deleted = 0
+        <if test="source != null and source != ''">
+            AND source = #{source}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </sql>
+
+    <select id="selectPage" resultMap="ContestResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM contest
+        <include refid="Page_Where_Clause"/>
+        ORDER BY start_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        FROM contest
+        <include refid="Page_Where_Clause"/>
+    </select>
+
+</mapper>
+
+

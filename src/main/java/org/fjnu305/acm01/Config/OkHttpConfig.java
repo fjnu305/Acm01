@@ -1,0 +1,53 @@
+package org.fjnu305.acm01.Config;
+
+import okhttp3.ConnectionPool;
+import okhttp3.OkHttpClient;
+import org.fjnu305.acm01.module.contest.crawler.http.CrawlHttpProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 爬虫模块 OkHttp 客户端配置。
+ * <p>
+ * 注册全局单例 {@link OkHttpClient} 与 {@link ConnectionPool}，
+ * 供 {@link org.fjnu305.acm01.module.contest.crawler.http.CrawlHttpClient} 注入复用。
+ * 所有平台 Crawler 共享同一连接池，避免每个策略类各自 new 客户端。
+ * </p>
+ */
+@Configuration
+public class OkHttpConfig {
+
+    /**
+     * 爬虫专用连接池 Bean。
+     * <p>参数来自 {@link CrawlHttpProperties}，可在 yml 中按环境调整。</p>
+     */
+    @Bean
+    public ConnectionPool crawlConnectionPool(CrawlHttpProperties properties) {
+        return new ConnectionPool(
+                properties.getMaxIdleConnections(),
+                properties.getKeepAliveMinutes(),
+                TimeUnit.MINUTES
+        );
+    }
+
+    /**
+     * 爬虫专用 OkHttp 客户端 Bean。
+     * <p>
+     * {@code retryOnConnectionFailure(true)} 仅处理连接层瞬断；
+     * 应用层 HTTP 5xx / 429 重试由 {@link org.fjnu305.acm01.module.contest.crawler.http.CrawlHttpClient} 负责。
+     * </p>
+     */
+    @Bean
+    public OkHttpClient crawlOkHttpClient(CrawlHttpProperties properties, ConnectionPool crawlConnectionPool) {
+        return new OkHttpClient.Builder()
+                .connectionPool(crawlConnectionPool)
+                .connectTimeout(properties.getConnectTimeoutSeconds(), TimeUnit.SECONDS)
+                .readTimeout(properties.getReadTimeoutSeconds(), TimeUnit.SECONDS)
+                .writeTimeout(properties.getWriteTimeoutSeconds(), TimeUnit.SECONDS)
+                .callTimeout(properties.getCallTimeoutSeconds(), TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+    }
+}

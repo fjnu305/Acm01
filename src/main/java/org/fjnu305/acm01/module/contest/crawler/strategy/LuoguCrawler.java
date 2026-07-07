@@ -8,24 +8,28 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * 洛谷赛事爬虫策略实现。
- * <p>
- * <b>数据来源：</b>洛谷比赛页面 / 非官方 API<br>
- * <b>实现方式：</b>HTTP + JSON 或 HTML 解析。
- * </p>
- */
+/** 洛谷赛事爬虫策略（迭代 3） */
 @Component
 public class LuoguCrawler extends AbstractContestCrawler {
 
+    private static final String LIST_URL =
+            "https://www.luogu.com.cn/contest/list?_contentOnly=1";
+
+    /** → contest.source = luogu */
     @Override
     public ContestSource getSource() {
         return ContestSource.LUOGU;
     }
 
+    /** → contest_crawl_log.request_url */
+    @Override
+    public String getPrimaryRequestUrl() {
+        return LIST_URL;
+    }
+
+    /** TODO 迭代 3：解析 JSON → List&lt;ContestDTO&gt; */
     @Override
     protected List<ContestDTO> doFetch() {
-        // TODO 迭代 3：解析洛谷比赛列表
         return Collections.emptyList();
     }
 }

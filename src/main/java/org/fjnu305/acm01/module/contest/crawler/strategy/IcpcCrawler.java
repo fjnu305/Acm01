@@ -8,24 +8,27 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * ICPC 赛事爬虫策略实现。
- * <p>
- * <b>数据来源：</b>ICPC 官网 / 区域赛公告页 HTML<br>
- * <b>特点：</b>赛事信息分散，需按区域赛页面分别抓取或聚合 RSS。
- * </p>
- */
+/** ICPC 赛事爬虫策略（迭代 3） */
 @Component
 public class IcpcCrawler extends AbstractContestCrawler {
 
+    private static final String LIST_URL = "https://icpc.global/regionals/upcoming";
+
+    /** → contest.source = icpc */
     @Override
     public ContestSource getSource() {
         return ContestSource.ICPC;
     }
 
+    /** → contest_crawl_log.request_url */
+    @Override
+    public String getPrimaryRequestUrl() {
+        return LIST_URL;
+    }
+
+    /** TODO 迭代 3：解析区域赛页面 → List&lt;ContestDTO&gt; */
     @Override
     protected List<ContestDTO> doFetch() {
-        // TODO 迭代 3：解析 ICPC 官网
         return Collections.emptyList();
     }
 }

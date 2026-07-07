@@ -19,3 +19,16 @@ mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
+
+# 赛事爬虫 HTTP 配置（OkHttp 连接池与重试，各平台 Crawler 共用）
+contest:
+  crawl:
+    http:
+      max-idle-connections: 5       # 连接池最大空闲连接数
+      keep-alive-minutes: 5           # 空闲连接保活时间
+      connect-timeout-seconds: 10     # TCP 连接超时
+      read-timeout-seconds: 30        # 读响应超时
+      write-timeout-seconds: 10       # 写请求超时
+      call-timeout-seconds: 60        # 单次请求总超时（含重试等待）
+      max-retries: 3                  # 失败后重试次数（不含首次）
+      retry-base-delay-millis: 500    # 重试退避基数（指数递增）

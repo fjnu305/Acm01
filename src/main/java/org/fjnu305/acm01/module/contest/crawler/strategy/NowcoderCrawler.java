@@ -8,24 +8,28 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * 牛客网赛事爬虫策略实现。
- * <p>
- * <b>数据来源：</b>牛客竞赛列表页 HTML<br>
- * <b>实现方式：</b>Jsoup 解析，提取竞赛标题、时间、报名链接。
- * </p>
- */
+/** 牛客网赛事爬虫策略（迭代 2） */
 @Component
 public class NowcoderCrawler extends AbstractContestCrawler {
 
+    private static final String LIST_URL =
+            "https://ac.nowcoder.com/acm/contest/vip-index?topCategoryFilter=13";
+
+    /** → contest.source = nowcoder */
     @Override
     public ContestSource getSource() {
         return ContestSource.NOWCODER;
     }
 
+    /** → contest_crawl_log.request_url */
+    @Override
+    public String getPrimaryRequestUrl() {
+        return LIST_URL;
+    }
+
+    /** TODO 迭代 2：解析 data-json → List&lt;ContestDTO&gt; */
     @Override
     protected List<ContestDTO> doFetch() {
-        // TODO 迭代 2：解析牛客竞赛列表页
         return Collections.emptyList();
     }
 }

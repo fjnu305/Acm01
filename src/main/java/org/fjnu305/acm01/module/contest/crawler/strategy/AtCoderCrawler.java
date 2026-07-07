@@ -9,25 +9,29 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * AtCoder 赛事爬虫策略实现。
- * <p>
- * <b>数据来源：</b>{@code https://atcoder.jp/contests/} 页面 HTML<br>
- * <b>实现方式：</b>Jsoup 解析表格 / 列表，提取赛事名、时间、链接。
- * </p>
+ * AtCoder 赛事爬虫策略（迭代 2）。
+ * <p>输出 {@link ContestDTO}，字段对标 contest 表 §3.1。</p>
  */
 @Component
 public class AtCoderCrawler extends AbstractContestCrawler {
 
     private static final String LIST_URL = "https://atcoder.jp/contests/";
 
+    /** → contest.source = atcoder */
     @Override
     public ContestSource getSource() {
         return ContestSource.ATCODER;
     }
 
+    /** → contest_crawl_log.request_url */
+    @Override
+    public String getPrimaryRequestUrl() {
+        return LIST_URL;
+    }
+
+    /** TODO 迭代 2：解析 HTML → List&lt;ContestDTO&gt; */
     @Override
     protected List<ContestDTO> doFetch() {
-        // TODO 迭代 2：Jsoup 解析 LIST_URL
         return Collections.emptyList();
     }
 }

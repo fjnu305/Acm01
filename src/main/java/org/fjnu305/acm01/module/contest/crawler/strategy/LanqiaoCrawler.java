@@ -8,24 +8,27 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * 蓝桥杯赛事爬虫策略实现。
- * <p>
- * <b>数据来源：</b>蓝桥杯官方站点 HTML<br>
- * <b>特点：</b>省赛 / 国赛周期性强，需过滤历史届次。
- * </p>
- */
+/** 蓝桥杯赛事爬虫策略（迭代 3） */
 @Component
 public class LanqiaoCrawler extends AbstractContestCrawler {
 
+    private static final String LIST_URL = "https://dasai.lanqiao.cn/";
+
+    /** → contest.source = lanqiao */
     @Override
     public ContestSource getSource() {
         return ContestSource.LANQIAO;
     }
 
+    /** → contest_crawl_log.request_url */
+    @Override
+    public String getPrimaryRequestUrl() {
+        return LIST_URL;
+    }
+
+    /** TODO 迭代 3：解析官网 → List&lt;ContestDTO&gt; */
     @Override
     protected List<ContestDTO> doFetch() {
-        // TODO 迭代 3：解析蓝桥杯官网
         return Collections.emptyList();
     }
 }
