@@ -39,7 +39,8 @@ public class AuthService {
 
         RoleEntity defaultRole = roleMapper.selectByRoleCode(DEFAULT_ROLE_CODE);
         if (defaultRole == null) {
-            throw new BusinessException(ErrorCode.ROLE_NOT_FOUND, "默认角色 USER 未配置，请先初始化 role 表");
+            throw new BusinessException(ErrorCode.ROLE_NOT_FOUND,
+                    "Default role USER is not configured");
         }
 
         UserEntity user = new UserEntity();
@@ -75,7 +76,7 @@ public class AuthService {
         userMapper.updateLastLoginTime(user.getId());
         List<String> roles = roleMapper.selectRoleCodesByUserId(user.getId());
         if (roles.isEmpty()) {
-            throw new BusinessException(ErrorCode.ROLE_NOT_FOUND, "用户未分配角色");
+            throw new BusinessException(ErrorCode.ROLE_NOT_FOUND, "User has no assigned role");
         }
 
         String token = jwtTokenProvider.createToken(user.getId(), user.getUsername(), String.join(",", roles));

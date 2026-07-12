@@ -42,7 +42,6 @@ org.fjnu305.acm01/
 │   └── enums/
 │       ├── UserRole.java              # USER / ADMIN
 │       ├── ContestSource.java         # 赛事来源（模块 2 用）
-│       └── NotifyType.java            # 提醒类型（模块 3 用）
 │
 ├── Security/                          # 安全 / JWT
 │   ├── JwtTokenProvider.java          # Token 签发与解析（原有）
@@ -221,7 +220,6 @@ mybatis:
 |------|------|------|
 | `UserRole` | `Common/enums/UserRole.java` | `USER` / `ADMIN`，对应 Spring `ROLE_` 前缀 |
 | `ContestSource` | `Common/enums/ContestSource.java` | 模块 2 爬虫来源 |
-| `NotifyType` | `Common/enums/NotifyType.java` | 模块 3 提醒渠道 |
 
 ---
 

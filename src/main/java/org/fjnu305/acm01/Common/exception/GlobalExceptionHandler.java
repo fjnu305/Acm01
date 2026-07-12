@@ -29,6 +29,12 @@ public class GlobalExceptionHandler {
         return Result.fail(ErrorCode.BAD_REQUEST.getCode(), message);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handleIllegalArgumentException(IllegalArgumentException e) {
+        return Result.fail(ErrorCode.BAD_REQUEST.getCode(), e.getMessage());
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<Void> handleAuthenticationException(AuthenticationException e) {

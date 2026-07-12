@@ -4,7 +4,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 爬虫执行日志结果状态，对应 {@code contest_crawl_log.status}。
+ * 爬虫执行日志结果状态，对应 {@code contest_crawl_log.status}?
+ * 爬虫执行日志结果状态，对应 {@code contest_crawl_log.status}?
  */
 @Getter
 @RequiredArgsConstructor

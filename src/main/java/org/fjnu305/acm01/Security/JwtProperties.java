@@ -13,7 +13,6 @@ public class JwtProperties {
     /** 密钥 */
     private String secret;
 
-    /** Token过期时间（毫秒），默认24小时 */
     private Long expiration = 86400000L;
 
     /** Token前缀 */

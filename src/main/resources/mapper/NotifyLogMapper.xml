@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.notify.mapper.NotifyLogMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO notify_log (notify_task_id, user_id, channel, target, status, provider_msg_id, error_message)
+        VALUES (#{notifyTaskId}, #{userId}, #{channel}, #{target}, #{status}, #{providerMsgId}, #{errorMessage})
+    </insert>
+</mapper>

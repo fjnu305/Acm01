@@ -2,26 +2,24 @@ package org.fjnu305.acm01.Config;
 
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
-import org.fjnu305.acm01.module.contest.crawler.http.CrawlHttpProperties;
+import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 
 /**
- * 爬虫模块 OkHttp 客户端配置。
+ * 爬虫模块 OkHttp 客户端配置?
  * <p>
- * 注册全局单例 {@link OkHttpClient} 与 {@link ConnectionPool}，
- * 供 {@link org.fjnu305.acm01.module.contest.crawler.http.CrawlHttpClient} 注入复用。
- * 所有平台 Crawler 共享同一连接池，避免每个策略类各自 new 客户端。
+ * 注册全局单例 {@link OkHttpClient} ?{@link ConnectionPool}?
+ * ?{@link org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient} 注入复用?
  * </p>
  */
 @Configuration
 public class OkHttpConfig {
 
     /**
-     * 爬虫专用连接池 Bean。
-     * <p>参数来自 {@link CrawlHttpProperties}，可在 yml 中按环境调整。</p>
+     * 爬虫专用连接?Bean?
      */
     @Bean
     public ConnectionPool crawlConnectionPool(CrawlHttpProperties properties) {
@@ -33,10 +31,10 @@ public class OkHttpConfig {
     }
 
     /**
-     * 爬虫专用 OkHttp 客户端 Bean。
+     * 爬虫专用 OkHttp 客户?Bean?
      * <p>
-     * {@code retryOnConnectionFailure(true)} 仅处理连接层瞬断；
-     * 应用层 HTTP 5xx / 429 重试由 {@link org.fjnu305.acm01.module.contest.crawler.http.CrawlHttpClient} 负责。
+     * {@code retryOnConnectionFailure(true)} 仅处理连接层瞬断?
+     * 应用?HTTP 5xx / 429 重试?{@link org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient} 负责?
      * </p>
      */
     @Bean

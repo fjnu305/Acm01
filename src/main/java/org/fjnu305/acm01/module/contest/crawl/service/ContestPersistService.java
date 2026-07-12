@@ -3,10 +3,9 @@ package org.fjnu305.acm01.module.contest.crawl.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fjnu305.acm01.module.contest.dto.ContestDTO;
-import org.fjnu305.acm01.module.contest.dto.ContestPersistResult;
+import org.fjnu305.acm01.module.contest.log.dto.ContestPersistCountsDTO;
 import org.fjnu305.acm01.module.contest.entity.ContestEntity;
-import org.fjnu305.acm01.module.contest.mapper.ContestMapper;
-import org.fjnu305.acm01.module.contest.mapper.ContestMapperSupport;
+import org.fjnu305.acm01.module.contest.crawl.mapper.ContestPersistMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -18,28 +17,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * 赛事持久化：将爬虫输出的 {@link ContestDTO} 批量写入 contest 表。
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ContestPersistService {
 
-    private final ContestMapper contestMapper;
-    private final ContestMapperSupport contestMapperSupport;
+    private final ContestPersistMapper contestPersistMapper;
 
     @Transactional
-    public ContestPersistResult persistAll(List<ContestDTO> contests) {
+    public ContestPersistCountsDTO persistAll(List<ContestDTO> contests) {
         if (contests == null || contests.isEmpty()) {
-            return ContestPersistResult.builder().build();
+            return ContestPersistCountsDTO.empty();
         }
 
-        int ignored = 0;
+        int ignoredCount = 0;
         Map<String, ContestEntity> incoming = new LinkedHashMap<>();
         for (ContestDTO dto : contests) {
             if (!isValid(dto)) {
-                ignored++;
+                ignoredCount++;
                 continue;
             }
             ContestEntity entity = toEntity(dto);
@@ -47,9 +42,9 @@ public class ContestPersistService {
         }
 
         if (incoming.isEmpty()) {
-            return ContestPersistResult.builder()
-                    .fetched(contests.size())
-                    .ignored(ignored)
+            return ContestPersistCountsDTO.builder()
+                    .fetchedCount(contests.size())
+                    .ignoredCount(ignoredCount)
                     .build();
         }
 
@@ -62,13 +57,13 @@ public class ContestPersistService {
         }
 
         Map<String, String> existingHash = new HashMap<>();
-        for (ContestEntity existing : contestMapper.selectRawHashByKeys(keys)) {
+        for (ContestEntity existing : contestPersistMapper.selectRawHashByKeys(keys)) {
             existingHash.put(existing.getSource() + '\0' + existing.getExternalId(), existing.getRawHash());
         }
 
         List<ContestEntity> toInsert = new ArrayList<>();
         List<ContestEntity> toUpdate = new ArrayList<>();
-        int skipped = 0;
+        int skippedCount = 0;
         for (ContestEntity entity : incoming.values()) {
             String businessKey = entity.getSource() + '\0' + entity.getExternalId();
             String oldHash = existingHash.get(businessKey);
@@ -77,22 +72,23 @@ public class ContestPersistService {
             } else if (!Objects.equals(entity.getRawHash(), oldHash)) {
                 toUpdate.add(entity);
             } else {
-                skipped++;
+                skippedCount++;
             }
         }
 
-        int inserted = toInsert.isEmpty() ? 0 : contestMapper.batchInsert(toInsert);
-        int updated = toUpdate.isEmpty() ? 0 : contestMapperSupport.batchUpdateBySourceAndExternalId(toUpdate);
+        int insertedCount = toInsert.isEmpty() ? 0 : contestPersistMapper.batchInsert(toInsert);
+        int updatedCount = toUpdate.isEmpty() ? 0 : contestPersistMapper.batchUpdateBySourceAndExternalId(toUpdate);
+        int fetchedCount = contests.size();
 
-        log.info("contest 入库完成：fetched={}, insert={}, update={}, skip={}, ignore={}",
-                contests.size(), inserted, updated, skipped, ignored);
+        log.info("contest persist done: fetched={}, insert={}, update={}, skip={}, ignore={}",
+                fetchedCount, insertedCount, updatedCount, skippedCount, ignoredCount);
 
-        return ContestPersistResult.builder()
-                .fetched(contests.size())
-                .inserted(inserted)
-                .updated(updated)
-                .skipped(skipped)
-                .ignored(ignored)
+        return ContestPersistCountsDTO.builder()
+                .fetchedCount(fetchedCount)
+                .insertedCount(insertedCount)
+                .updatedCount(updatedCount)
+                .skippedCount(skippedCount)
+                .ignoredCount(ignoredCount)
                 .build();
     }
 

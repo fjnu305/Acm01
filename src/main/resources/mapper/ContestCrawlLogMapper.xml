@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="org.fjnu305.acm01.module.contest.mapper.ContestCrawlLogMapper">
+<mapper namespace="org.fjnu305.acm01.module.contest.log.mapper.ContestCrawlLogMapper">
 
-    <resultMap id="CrawlLogResultMap" type="org.fjnu305.acm01.module.contest.entity.ContestCrawlLogEntity">
+    <resultMap id="CrawlLogResultMap" type="org.fjnu305.acm01.module.contest.log.entity.ContestCrawlLogEntity">
         <id property="id" column="id"/>
         <result property="source" column="source"/>
         <result property="status" column="status"/>
@@ -14,6 +14,10 @@
         <result property="maxRetries" column="max_retries"/>
         <result property="totalAttempts" column="total_attempts"/>
         <result property="fetchedCount" column="fetched_count"/>
+        <result property="insertedCount" column="inserted_count"/>
+        <result property="updatedCount" column="updated_count"/>
+        <result property="skippedCount" column="skipped_count"/>
+        <result property="ignoredCount" column="ignored_count"/>
         <result property="elapsedMs" column="elapsed_ms"/>
         <result property="errorMessage" column="error_message"/>
         <result property="errorDetail" column="error_detail"/>
@@ -23,19 +27,22 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO contest_crawl_log (
             source, status, trigger_type, error_type, http_status, request_url,
-            max_retries, total_attempts, fetched_count, elapsed_ms,
-            error_message, error_detail
+            max_retries, total_attempts, fetched_count,
+            inserted_count, updated_count, skipped_count, ignored_count,
+            elapsed_ms, error_message, error_detail
         ) VALUES (
             #{source}, #{status}, #{triggerType}, #{errorType}, #{httpStatus}, #{requestUrl},
-            #{maxRetries}, #{totalAttempts}, #{fetchedCount}, #{elapsedMs},
-            #{errorMessage}, #{errorDetail}
+            #{maxRetries}, #{totalAttempts}, #{fetchedCount},
+            #{insertedCount}, #{updatedCount}, #{skippedCount}, #{ignoredCount},
+            #{elapsedMs}, #{errorMessage}, #{errorDetail}
         )
     </insert>
 
     <select id="selectRecentBySource" resultMap="CrawlLogResultMap">
         SELECT id, source, status, trigger_type, error_type, http_status, request_url,
-               max_retries, total_attempts, fetched_count, elapsed_ms,
-               error_message, error_detail, created_time
+               max_retries, total_attempts, fetched_count,
+               inserted_count, updated_count, skipped_count, ignored_count,
+               elapsed_ms, error_message, error_detail, created_time
         FROM contest_crawl_log
         WHERE source = #{source}
         ORDER BY created_time DESC

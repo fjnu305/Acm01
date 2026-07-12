@@ -28,8 +28,8 @@
 | `security` | JWT、SecurityConfig、UserDetails |
 | `module-user` | 用户与权限 |
 | `module-contest` | 赛事聚合 + 爬虫 |
-| `module-subscription` | 订阅提醒 |
-| `module-notify` | 消息分发（MQ 消费、邮件、WebSocket） |
+| `module-subscription` | 赛事订阅 |
+| `module-notify` | 消息通知（邮件、任务扫描，独立模块） |
 | `module-social` | 社交社区 |
 | `module-team` | 组队匹配 |
 | `module-solution` | 题解分享 |
@@ -93,7 +93,7 @@
 | 子项 | 内容 |
 |------|------|
 | 核心表 | `contest`、`contest_source` |
-| 设计模式 | 策略模式 `crawler/strategy/` |
+| 设计模式 | 策略模式 + 分层：`crawler/common` 公共调度，`crawler/{platform}` 内 Client/Mapper/FetchService |
 | 爬虫实现 | Codeforces、AtCoder、牛客、洛谷、CCPC、ICPC、蓝桥杯 |
 | 去重键 | `source + external_id` 唯一 |
 | 增量更新 | 对比 `updated_at`，只更新变化字段 |
@@ -119,35 +119,38 @@
 
 ---
 
-### 模块 3：订阅提醒
+### 模块 3：赛事订阅
+
+> **实施文档：** [`module-3-subscription.md`](module-3-subscription.md)
 
 | 子项 | 内容 |
 |------|------|
-| 核心表 | `contest_subscription`、`notify_task` |
-| 核心接口 | 订阅/取消、自定义提醒时间（赛前 1h / 24h） |
-| 技术点 | Quartz 扫描即将开始的赛事 → 生成提醒任务 |
-| 流程 | Quartz Job → 查 subscription → 命中则投递 RabbitMQ |
+| 核心表 | `contest_subscription` |
+| 核心接口 | 订阅/取消/我的订阅；提醒档位 24h、1h |
+| 边界 | 通过 `notify.writeTask.api.NotifyTaskScheduler` 调用独立 notify 模块 |
 | 依赖 | 模块 1、2 |
-| pom 需补 | `spring-boot-starter-amqp` |
-| 预估周期 | 1.5 ~ 2 周 |
+| 预估周期 | 已完成 MVP |
 
 ---
 
-### 模块 4：消息分发
+### 模块 4：消息通知
 
-| 组件 | 职责 |
-|------|------|
-| `ContestNotifyProducer` | 模块 3 调用，发 MQ |
-| `ContestNotifyConsumer` | 批量消费，线程池并行 |
-| `EmailNotifyHandler` | 邮件推送 |
-| `InAppNotifyHandler` | 写 `notification` 表（站内消息） |
-| `WebSocketNotifyHandler` | 调用模块 5 推实时弹窗 |
+> **实施文档：** [`module-4-notify.md`](module-4-notify.md)（独立 `module/notify/`）
 
 | 子项 | 内容 |
 |------|------|
-| 核心表 | `notification`、`notify_log`（幂等、重试） |
-| 依赖 | 模块 3、5 |
-| 预估周期 | 1 周 |
+| 核心表 | `notify_task`、`notify_log` |
+| 内部分块 | **writeTask**（写任务）→ **discovery**（扫描分组）→ **delivery**（限流+发信） |
+| 渠道 | 固定 **EMAIL**（SMTP + `notify_log` 审计） |
+| 技术点 | Quartz 扫描；RabbitMQ 异步（默认）；Redis 每用户限流；按 user 合并邮件 |
+| 流程 | 模块 3 → writeTask → notify_task → discovery → MQ/本地 → delivery → SENT |
+| 配置 | `notify.*` + Redis + RabbitMQ + `application-local.yml`（gitignore）+ Jasypt |
+| 依赖 | 模块 1、2、3（只读 `contest_subscription`） |
+| 状态 | **MVP 已完成**；站内消息为后续迭代 |
+
+**MVP 未做：** RabbitMQ 异步、站内 `notification`、爬虫改期重算任务。
+
+**后续演进（原规划组件）：** `ContestNotifyProducer/Consumer`（MQ）、`InAppNotifyHandler`（站内）、`WebSocketNotifyHandler`（模块 5）
 
 ---
 
@@ -322,8 +325,8 @@
 | `contest` | 模块 2 | 赛事信息 |
 | `contest_source` | 模块 2 | 数据来源配置 |
 | `contest_subscription` | 模块 3 | 用户订阅规则 |
-| `notify_task` | 模块 3 | 待推送任务 |
-| `notification` | 模块 4 | 站内消息 |
+| `notify_task` | 模块 4 | 待推送任务 |
+| `notification` | — | 已移除（MVP 仅 EMAIL） |
 | `notify_log` | 模块 4 | 推送日志（幂等） |
 
 ---

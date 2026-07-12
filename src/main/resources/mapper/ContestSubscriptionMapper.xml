@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.subscription.mapper.ContestSubscriptionMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO contest_subscription (user_id, contest_id, remind_before_minutes, channel, status)
+        VALUES (#{userId}, #{contestId}, #{remindBeforeMinutes}, #{channel}, #{status})
+    </insert>
+
+    <select id="selectById" resultType="org.fjnu305.acm01.module.subscription.entity.ContestSubscriptionEntity">
+        SELECT id, user_id, contest_id, remind_before_minutes, channel, status, created_time, updated_time
+        FROM contest_subscription
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectActive" resultType="org.fjnu305.acm01.module.subscription.entity.ContestSubscriptionEntity">
+        SELECT id, user_id, contest_id, remind_before_minutes, channel, status, created_time, updated_time
+        FROM contest_subscription
+        WHERE user_id = #{userId}
+          AND contest_id = #{contestId}
+          AND remind_before_minutes = #{remindBeforeMinutes}
+          AND status = 1
+        LIMIT 1
+    </select>
+
+    <select id="selectAny" resultType="org.fjnu305.acm01.module.subscription.entity.ContestSubscriptionEntity">
+        SELECT id, user_id, contest_id, remind_before_minutes, channel, status, created_time, updated_time
+        FROM contest_subscription
+        WHERE user_id = #{userId}
+          AND contest_id = #{contestId}
+          AND remind_before_minutes = #{remindBeforeMinutes}
+        LIMIT 1
+    </select>
+
+    <update id="reactivate">
+        UPDATE contest_subscription
+        SET status = 1, channel = #{channel}, updated_time = NOW()
+        WHERE id = #{id} AND status = 0
+    </update>
+
+    <update id="cancel">
+        UPDATE contest_subscription
+        SET status = 0, updated_time = NOW()
+        WHERE id = #{id} AND user_id = #{userId} AND status = 1
+    </update>
+
+    <select id="selectMyActive" resultType="org.fjnu305.acm01.module.subscription.vo.SubscriptionVO">
+        SELECT s.id,
+               s.contest_id       AS contestId,
+               c.title            AS contestTitle,
+               c.source           AS source,
+               c.start_time       AS contestStartTime,
+               s.remind_before_minutes AS remindBeforeMinutes,
+               s.channel,
+               s.status,
+               s.created_time     AS createdTime
+        FROM contest_subscription s
+                 INNER JOIN contest c ON c.id = s.contest_id AND c.deleted = 0
+        WHERE s.user_id = #{userId}
+          AND s.status = 1
+        ORDER BY c.start_time ASC
+    </select>
+</mapper>

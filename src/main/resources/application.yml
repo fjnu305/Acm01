@@ -2,15 +2,34 @@ server:
   port: 8080
 
 spring:
+  config:
+    import: optional:classpath:application-local.yml
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/acm?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/acm?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true
     username: root
     password: 123456
   data:
     redis:
       host: localhost
       port: 6379
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  quartz:
+    job-store-type: memory
+    auto-startup: true
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
 
 jwt:
   expiration: 86400000
@@ -23,6 +42,9 @@ mybatis:
 # 赛事爬虫 HTTP 配置（OkHttp 连接池与重试，各平台 Crawler 共用）
 contest:
   crawl:
+    schedule:
+      enabled: true
+      cron: "0 */10 * * * ?"
     http:
       max-idle-connections: 5       # 连接池最大空闲连接数
       keep-alive-minutes: 5           # 空闲连接保活时间
@@ -32,3 +54,41 @@ contest:
       call-timeout-seconds: 60        # 单次请求总超时（含重试等待）
       max-retries: 3                  # 失败后重试次数（不含首次）
       retry-base-delay-millis: 500    # 重试退避基数（指数递增）
+    atcoder:
+      json-fallback-url: https://kenkoooo.com/atcoder/resources/contests.json
+      html-url: https://atcoder.jp/contests/
+      finished-keep-days: 90
+    nowcoder:
+      list-url: https://ac.nowcoder.com/acm/contest/vip-index?topCategoryFilter=13
+      finished-keep-days: 90
+
+# 模块 3：赛事订阅（仅订阅关系）
+subscription:
+  allowed-remind-minutes:
+    - 1440
+    - 60
+
+# 模块 4：消息通知（扫描任务、发邮件）
+notify:
+  enabled: true
+  scan-cron: "0 */1 * * * ?"
+  scan-batch-size: 200
+  max-retries: 3
+  send-interval-millis: 1000
+  mq:
+    enabled: true
+    exchange: notify.exchange
+    queue: notify.delivery.queue
+    routing-key: notify.delivery
+  rate-limit:
+    user-min-interval-seconds: 60
+  email:
+    enabled: false
+    from: ${MAIL_FROM:noreply@acmer.local}
+
+# Jasypt 解密密钥：仅本机环境变量 JASYPT_ENCRYPTOR_PASSWORD，不要写进 yaml
+jasypt:
+  encryptor:
+    password: ${JASYPT_ENCRYPTOR_PASSWORD:}
+    algorithm: PBEWithMD5AndDES
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator

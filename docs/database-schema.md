@@ -2,7 +2,7 @@
 
 > 数据库：`acm`（MySQL 8.x，InnoDB，utf8mb4）  
 > 依据：`src/main/resources/db/*.sql`、Entity、Mapper XML 整理  
-> 更新日期：2026-07-07
+> 更新日期：2026-07-12
 
 ---
 
@@ -18,6 +18,9 @@
 | `contest` | 模块 2 赛事 | 统一赛事表 | `init-contest.sql` |
 | `contest_source` | 模块 2 爬虫 | 爬虫源配置 | `init-contest-crawl.sql` |
 | `contest_crawl_log` | 模块 2 爬虫 | 爬虫执行日志 | `init-contest-crawl.sql` |
+| `contest_subscription` | 模块 3 订阅 | 用户赛事订阅意图 | `init-subscription.sql` |
+| `notify_task` | 模块 3 订阅 | 待执行的邮件提醒任务 | `init-subscription.sql` |
+| `notify_log` | 模块 4 通知 | 邮件发送审计 | `init-subscription.sql` |
 
 ---
 
@@ -258,7 +261,135 @@ SELECT <用户ID>, id FROM role WHERE role_code = 'ADMIN';
 
 ---
 
-## 4. ER 关系简图
+## 4. 模块 3：赛事订阅与提醒
+
+### 4.1 表关系
+
+```text
+user ──< contest_subscription >── contest
+              │
+              ▼
+         notify_task ──> notify_log（EMAIL）
+```
+
+**业务流：**
+
+```text
+订阅 API → contest_subscription
+         → notify_task（scheduled_at = contest.start_time - remind_before_minutes）
+Quartz NotifyScanJob 扫描到期任务 → 发邮件 → 写 notify_log
+```
+
+### 4.2 `contest_subscription` — 用户赛事订阅
+
+> 脚本：`src/main/resources/db/init-subscription.sql`  
+> 实体：`ContestSubscriptionEntity`
+
+| 字段 | 类型 | 空 | 默认 | 说明 |
+|------|------|----|------|------|
+| `id` | BIGINT | NO | AUTO_INCREMENT | 主键 |
+| `user_id` | BIGINT | NO | — | 用户 ID，FK → `user.id` |
+| `contest_id` | BIGINT | NO | — | 赛事 ID，FK → `contest.id` |
+| `remind_before_minutes` | INT | NO | — | 赛前提醒分钟数，如 `1440`（24h）、`60`（1h） |
+| `channel` | VARCHAR(16) | NO | `EMAIL` | 固定为邮件渠道 |
+| `status` | TINYINT | NO | 1 | 1 生效 / 0 已取消 |
+| `created_time` | DATETIME | NO | CURRENT_TIMESTAMP | 创建时间 |
+| `updated_time` | DATETIME | NO | ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+
+**索引：**
+
+| 索引名 | 类型 | 字段 |
+|--------|------|------|
+| PRIMARY | 主键 | `id` |
+| uk_user_contest_remind | UNIQUE | `user_id`, `contest_id`, `remind_before_minutes` |
+| idx_user_status | INDEX | `user_id`, `status` |
+
+**设计要点：**
+
+- 同一用户对同一场比赛可同时订阅多个提醒档位（如 24h + 1h），每条档位一行
+- 唯一约束不含 `status`，取消后复订走「reactivate」而非重复 INSERT
+
+---
+
+### 4.3 `notify_task` — 待执行提醒任务
+
+> 脚本：`src/main/resources/db/init-subscription.sql`  
+> 实体：`org.fjnu305.acm01.module.notify.entity.NotifyTaskEntity`  
+> 生成：`org.fjnu305.acm01.module.notify.writeTask.service.NotifyTaskScheduleService.schedule`
+
+| 字段 | 类型 | 空 | 默认 | 说明 |
+|------|------|----|------|------|
+| `id` | BIGINT | NO | AUTO_INCREMENT | 主键 |
+| `subscription_id` | BIGINT | NO | — | 来源订阅 ID，FK → `contest_subscription.id` |
+| `channel` | VARCHAR(16) | NO | `EMAIL` | 固定为邮件渠道 |
+| `scheduled_at` | DATETIME | NO | — | 计划发送时刻 = `contest.start_time - remind_before_minutes` |
+| `status` | VARCHAR(16) | NO | `PENDING` | `PENDING` / `SENT` / `FAILED` / `CANCELLED` |
+| `sent_at` | DATETIME | YES | NULL | 实际发送时间 |
+| `retry_count` | INT | NO | 0 | 失败重试次数 |
+| `error_message` | VARCHAR(500) | YES | NULL | 最后一次失败原因 |
+| `idempotent_key` | VARCHAR(128) | NO | — | 幂等键，防重复发送 |
+| `created_time` | DATETIME | NO | CURRENT_TIMESTAMP | 创建时间 |
+
+**幂等键格式：**
+
+```text
+{userId}:{contestId}:{channel}:{remind_before_minutes}
+```
+
+**索引：**
+
+| 索引名 | 类型 | 字段 |
+|--------|------|------|
+| PRIMARY | 主键 | `id` |
+| uk_idempotent | UNIQUE | `idempotent_key` |
+| idx_scan | INDEX | `status`, `scheduled_at` |
+| idx_subscription | INDEX | `subscription_id` |
+
+**扫描 SQL（NotifyScanJob）：**
+
+```sql
+SELECT * FROM notify_task
+WHERE status IN ('PENDING', 'FAILED')
+  AND scheduled_at <= NOW()
+ORDER BY scheduled_at
+LIMIT 200
+```
+
+---
+
+### 4.4 `notify_log` — 邮件发送审计
+
+> 脚本：`src/main/resources/db/init-subscription.sql`  
+> 实体：`org.fjnu305.acm01.module.notify.entity.NotifyLogEntity`  
+> 写入：`org.fjnu305.acm01.module.notify.delivery.emailhandler.EmailNotifyHandler`
+
+| 字段 | 类型 | 空 | 默认 | 说明 |
+|------|------|----|------|------|
+| `id` | BIGINT | NO | AUTO_INCREMENT | 主键 |
+| `notify_task_id` | BIGINT | NO | — | 对应任务 ID，FK → `notify_task.id` |
+| `user_id` | BIGINT | NO | — | 用户 ID |
+| `channel` | VARCHAR(16) | NO | `EMAIL` | 固定为邮件渠道 |
+| `target` | VARCHAR(255) | YES | NULL | 投递目标，如邮箱地址 |
+| `status` | VARCHAR(16) | NO | — | `SUCCESS` / `FAILED` |
+| `provider_msg_id` | VARCHAR(128) | YES | NULL | 邮件服务商回执 ID（可选） |
+| `error_message` | VARCHAR(500) | YES | NULL | 失败原因 |
+| `created_time` | DATETIME | NO | CURRENT_TIMESTAMP | 创建时间 |
+
+**索引：**
+
+| 索引名 | 类型 | 字段 |
+|--------|------|------|
+| PRIMARY | 主键 | `id` |
+| idx_task | INDEX | `notify_task_id` |
+
+**与 `notify_task` 关系：**
+
+- 邮件是否成功以 `notify_log` 为准
+- `notify_task.status = SENT` 表示业务上已处理完毕（含失败记入日志后的终态）
+
+---
+
+## 5. ER 关系简图
 
 ```text
 ┌─────────┐       ┌───────────┐       ┌─────────┐
@@ -273,18 +404,26 @@ SELECT <用户ID>, id FROM role WHERE role_code = 'ADMIN';
         ▼
 ┌───────────────┐
 │    contest    │  uk(source, external_id)
-└───────────────┘
+└───────┬───────┘
+        │
+        ▼
+┌─────────────────────┐       ┌─────────────┐
+│ contest_subscription│───<──│ notify_task │──> notify_log
+└──────────┬──────────┘
+           │
+      user └──────────────────────────────────
 ```
 
 ---
 
-## 5. 初始化脚本清单
+## 6. 初始化脚本清单
 
 | 文件 | 内容 |
 |------|------|
 | `src/main/resources/db/init-contest.sql` | 建表 `contest` |
 | `src/main/resources/db/init-contest-crawl.sql` | 建表 `contest_source`、`contest_crawl_log` + 平台初始数据 |
 | `src/main/resources/db/init-roles.sql` | 初始化 `role` 数据（USER / ADMIN） |
+| `src/main/resources/db/init-subscription.sql` | 建表 `contest_subscription`、`notify_task`、`notify_log` |
 
 **建议执行顺序：**
 
@@ -293,12 +432,13 @@ SELECT <用户ID>, id FROM role WHERE role_code = 'ADMIN';
 2. init-roles.sql
 3. init-contest.sql
 4. init-contest-crawl.sql
+5. init-subscription.sql
 ```
 
 ---
 
-## 6. 备注
+## 7. 备注
 
 - 连接配置见 `application.yml`：`jdbc:mysql://localhost:3306/acm`
 - 模块 1 用户表结构根据 Entity/Mapper **反推**，若线库字段有差异以实际 DDL 为准
-- 后续模块（订阅、社交等）表尚未创建，不在本文档范围内
+- 后续模块（社交等）表尚未创建，不在本文档范围内

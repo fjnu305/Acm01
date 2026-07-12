@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<!-- contest_source 表 Mapper，结构见 module-2-contest-crawler.md §3.2 -->
-<mapper namespace="org.fjnu305.acm01.module.contest.mapper.ContestSourceMapper">
+<mapper namespace="org.fjnu305.acm01.module.contest.crawl.mapper.ContestSourceMapper">
 
-    <!-- 成功：last_crawl_status=SUCCESS，fail_count=0 -->
     <update id="updateOnSuccess">
         UPDATE contest_source
         SET last_crawl_time   = NOW(),
@@ -13,7 +11,6 @@
         WHERE source_code = #{sourceCode}
     </update>
 
-    <!-- 失败：last_crawl_status=FAILED，fail_count+1 -->
     <update id="updateOnFailure">
         UPDATE contest_source
         SET last_crawl_time   = NOW(),

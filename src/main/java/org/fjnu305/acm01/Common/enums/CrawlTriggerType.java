@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum CrawlTriggerType {
 
-    /** Quartz 定时任务 {@link org.fjnu305.acm01.module.contest.job.ContestCrawlJob} */
+    /** Quartz 定时任务触发 {@link org.fjnu305.acm01.module.contest.crawl.schedule.ContestCrawlJob} */
     AUTO("AUTO"),
 
     /** 管理端手动触发 {@link org.fjnu305.acm01.module.contest.controller.ContestAdminController} */

@@ -1,4 +1,5 @@
 /src/main/resources/jwt-secret.key
+/src/main/resources/application-local.yml
 /target/
 .idea/
 *.iml

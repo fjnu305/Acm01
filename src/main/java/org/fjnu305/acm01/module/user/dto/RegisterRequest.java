@@ -7,17 +7,17 @@ import lombok.Data;
 @Data
 public class RegisterRequest {
 
-    @NotBlank(message = "用户名不能为空")
-    @Size(min = 3, max = 50, message = "用户名长度为 3~50 个字符")
+    @NotBlank(message = "Username is required")
+    @Size(min = 3, max = 50, message = "Username must be 3-50 characters")
     private String username;
 
-    @NotBlank(message = "密码不能为空")
-    @Size(min = 6, max = 32, message = "密码长度为 6~32 个字符")
+    @NotBlank(message = "Password is required")
+    @Size(min = 6, max = 32, message = "Password must be 6-32 characters")
     private String password;
 
-    @Size(max = 50, message = "昵称最多 50 个字符")
+    @Size(max = 50, message = "Nickname must be at most 50 characters")
     private String nickname;
 
-    @Size(max = 100, message = "邮箱最多 100 个字符")
+    @Size(max = 100, message = "Email must be at most 100 characters")
     private String email;
 }

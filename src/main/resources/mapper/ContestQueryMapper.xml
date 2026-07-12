@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.contest.query.mapper.ContestQueryMapper">
+
+    <resultMap id="ContestResultMap" type="org.fjnu305.acm01.module.contest.entity.ContestEntity">
+        <id property="id" column="id"/>
+        <result property="source" column="source"/>
+        <result property="externalId" column="external_id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="url" column="url"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="registerStart" column="register_start"/>
+        <result property="registerEnd" column="register_end"/>
+        <result property="status" column="status"/>
+        <result property="difficulty" column="difficulty"/>
+        <result property="contestType" column="contest_type"/>
+        <result property="location" column="location"/>
+        <result property="rawHash" column="raw_hash"/>
+        <result property="lastCrawledAt" column="last_crawled_at"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="updatedTime" column="updated_time"/>
+        <result property="deleted" column="deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, source, external_id, title, description, url,
+        start_time, end_time, register_start, register_end,
+        status, difficulty, contest_type, location, raw_hash,
+        last_crawled_at, created_time, updated_time, deleted
+    </sql>
+
+    <sql id="Page_Where_Clause">
+        WHERE deleted = 0
+        <if test="source != null and source != ''">
+            AND source = #{source}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </sql>
+
+    <select id="selectPage" resultMap="ContestResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM contest
+        <include refid="Page_Where_Clause"/>
+        ORDER BY start_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        FROM contest
+        <include refid="Page_Where_Clause"/>
+    </select>
+
+    <select id="selectById" resultMap="ContestResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM contest
+        WHERE id = #{id} AND deleted = 0
+        LIMIT 1
+    </select>
+</mapper>
