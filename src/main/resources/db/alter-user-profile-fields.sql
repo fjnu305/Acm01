@@ -1,0 +1,8 @@
+-- 用户资料字段补齐（昵称旁：学校、简介）
+USE acm;
+
+ALTER TABLE user
+    ADD COLUMN IF NOT EXISTS school VARCHAR(100) NULL COMMENT '学校' AFTER gender;
+
+ALTER TABLE user
+    ADD COLUMN IF NOT EXISTS bio VARCHAR(500) NULL COMMENT '个人简介' AFTER school;

@@ -4,7 +4,7 @@ import tools.jackson.databind.ObjectMapper;
 import org.fjnu305.acm01.module.contest.crawl.fetch.nowcoder.NowcoderCrawlProperties;
 import org.fjnu305.acm01.module.contest.crawl.fetch.nowcoder.dto.NowcoderContestItem;
 import org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient;
-import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
+import org.fjnu305.acm01.Common.http.AppHttpProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,7 +23,7 @@ class NowcoderHtmlClientTest {
     @Mock
     private CrawlHttpClient crawlHttpClient;
     @Mock
-    private CrawlHttpProperties crawlHttpProperties;
+    private AppHttpProperties appHttpProperties;
     @Mock
     private NowcoderCrawlProperties nowcoderCrawlProperties;
     @Spy

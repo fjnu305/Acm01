@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.inbox.mapper.InboxMessageMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO inbox_message (recipient_id, sender_id, title, body, ref_type, ref_id)
+        VALUES (#{recipientId}, #{senderId}, #{title}, #{body}, #{refType}, #{refId})
+    </insert>
+
+    <select id="selectById" resultType="org.fjnu305.acm01.module.inbox.entity.InboxMessageEntity">
+        SELECT id, recipient_id AS recipientId, sender_id AS senderId, title, body,
+               ref_type AS refType, ref_id AS refId, read_at AS readAt, created_time AS createdTime
+        FROM inbox_message
+        WHERE id = #{id}
+    </select>
+
+    <sql id="DetailSelect">
+        SELECT m.id,
+               m.sender_id AS senderId,
+               COALESCE(su.nickname, su.username) AS senderName,
+               su.avatar AS senderAvatar,
+               CASE
+                   WHEN m.sender_id = #{officialUserId} THEN 'OFFICIAL'
+                   WHEN m.ref_type IS NOT NULL THEN 'FRIEND'
+                   ELSE 'PERSONAL'
+                   END AS category,
+               m.title,
+               m.body,
+               m.ref_type AS refType,
+               m.ref_id AS refId,
+               (m.read_at IS NOT NULL) AS `read`,
+               m.read_at AS readAt,
+               m.created_time AS createdTime
+        FROM inbox_message m
+                 INNER JOIN user su ON su.id = m.sender_id AND su.deleted = 0
+    </sql>
+
+    <select id="selectDetail" resultType="org.fjnu305.acm01.module.inbox.vo.InboxMessageVO">
+        <include refid="DetailSelect"/>
+        WHERE m.id = #{id} AND m.recipient_id = #{recipientId}
+    </select>
+
+    <select id="selectPage" resultType="org.fjnu305.acm01.module.inbox.vo.InboxMessageVO">
+        <include refid="DetailSelect"/>
+        WHERE m.recipient_id = #{recipientId}
+        <if test="category != null and category != ''">
+            <choose>
+                <when test="category == 'OFFICIAL' or category == 'SYSTEM'">
+                    AND m.sender_id = #{officialUserId}
+                </when>
+                <when test="category == 'FRIEND'">
+                    AND m.ref_type IS NOT NULL
+                    AND m.sender_id &lt;&gt; #{officialUserId}
+                </when>
+                <when test="category == 'PERSONAL'">
+                    AND m.ref_type IS NULL
+                    AND m.sender_id &lt;&gt; #{officialUserId}
+                </when>
+            </choose>
+        </if>
+        ORDER BY m.created_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        FROM inbox_message m
+        WHERE m.recipient_id = #{recipientId}
+        <if test="category != null and category != ''">
+            <choose>
+                <when test="category == 'OFFICIAL' or category == 'SYSTEM'">
+                    AND m.sender_id = #{officialUserId}
+                </when>
+                <when test="category == 'FRIEND'">
+                    AND m.ref_type IS NOT NULL
+                    AND m.sender_id &lt;&gt; #{officialUserId}
+                </when>
+                <when test="category == 'PERSONAL'">
+                    AND m.ref_type IS NULL
+                    AND m.sender_id &lt;&gt; #{officialUserId}
+                </when>
+            </choose>
+        </if>
+    </select>
+
+    <select id="countUnread" resultType="long">
+        SELECT COUNT(1)
+        FROM inbox_message
+        WHERE recipient_id = #{recipientId}
+          AND read_at IS NULL
+    </select>
+
+    <update id="markRead">
+        UPDATE inbox_message
+        SET read_at = NOW()
+        WHERE id = #{id}
+          AND recipient_id = #{recipientId}
+          AND read_at IS NULL
+    </update>
+
+    <update id="markAllRead">
+        UPDATE inbox_message
+        SET read_at = NOW()
+        WHERE recipient_id = #{recipientId}
+          AND read_at IS NULL
+    </update>
+
+    <sql id="ThreadSelect">
+        SELECT m.id,
+               m.sender_id AS senderId,
+               m.recipient_id AS recipientId,
+               COALESCE(su.nickname, su.username) AS senderName,
+               su.avatar AS senderAvatar,
+               m.title,
+               m.body,
+               m.ref_type AS refType,
+               m.ref_id AS refId,
+               (m.sender_id = #{viewerId}) AS mine,
+               (m.read_at IS NOT NULL) AS `read`,
+               m.created_time AS createdTime
+        FROM inbox_message m
+                 INNER JOIN user su ON su.id = m.sender_id AND su.deleted = 0
+    </sql>
+
+    <sql id="ThreadRefTypes">
+        (ref_type IS NULL
+            OR ref_type IN (
+                'friend_request', 'friend_accepted',
+                'team_invite', 'team_apply', 'team_apply_accepted', 'team_apply_rejected'))
+    </sql>
+
+    <sql id="ThreadRefTypesAliased">
+        (m.ref_type IS NULL
+            OR m.ref_type IN (
+                'friend_request', 'friend_accepted',
+                'team_invite', 'team_apply', 'team_apply_accepted', 'team_apply_rejected'))
+    </sql>
+
+    <select id="selectThread" resultType="org.fjnu305.acm01.module.inbox.vo.ChatMessageVO">
+        <include refid="ThreadSelect"/>
+        WHERE <include refid="ThreadRefTypesAliased"/>
+          AND ((m.sender_id = #{viewerId} AND m.recipient_id = #{peerId})
+            OR (m.sender_id = #{peerId} AND m.recipient_id = #{viewerId}))
+        ORDER BY m.created_time ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectThreadMessage" resultType="org.fjnu305.acm01.module.inbox.vo.ChatMessageVO">
+        <include refid="ThreadSelect"/>
+        WHERE m.id = #{id}
+          AND (m.sender_id = #{viewerId} OR m.recipient_id = #{viewerId})
+    </select>
+
+    <select id="selectConversations" resultType="org.fjnu305.acm01.module.inbox.vo.ConversationSummaryVO">
+        SELECT u.id AS peerId,
+               COALESCE(u.nickname, u.username) AS peerName,
+               u.avatar AS peerAvatar,
+               (u.id = #{officialUserId}) AS official,
+               lm.body AS lastMessageBody,
+               lm.title AS lastMessageTitle,
+               lm.created_time AS lastMessageTime,
+               COALESCE(unread.cnt, 0) AS unreadCount
+        FROM (
+                 SELECT CASE
+                            WHEN sender_id = #{userId} THEN recipient_id
+                            ELSE sender_id
+                            END AS peer_id,
+                        MAX(id) AS last_id
+                 FROM inbox_message
+                 WHERE <include refid="ThreadRefTypes"/>
+                   AND (sender_id = #{userId} OR recipient_id = #{userId})
+                 GROUP BY peer_id
+             ) latest
+                 INNER JOIN inbox_message lm ON lm.id = latest.last_id
+                 INNER JOIN user u ON u.id = latest.peer_id AND u.deleted = 0
+                 LEFT JOIN (
+            SELECT sender_id AS peer_id, COUNT(1) AS cnt
+            FROM inbox_message
+            WHERE recipient_id = #{userId}
+              AND read_at IS NULL
+              AND <include refid="ThreadRefTypes"/>
+            GROUP BY sender_id
+        ) unread ON unread.peer_id = latest.peer_id
+        ORDER BY lm.created_time DESC
+    </select>
+
+    <update id="markThreadRead">
+        UPDATE inbox_message
+        SET read_at = NOW()
+        WHERE recipient_id = #{viewerId}
+          AND sender_id = #{peerId}
+          AND read_at IS NULL
+          AND <include refid="ThreadRefTypes"/>
+    </update>
+
+    <select id="hasThreadBetween" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM inbox_message
+        WHERE <include refid="ThreadRefTypes"/>
+          AND ((sender_id = #{viewerId} AND recipient_id = #{peerId})
+            OR (sender_id = #{peerId} AND recipient_id = #{viewerId}))
+    </select>
+</mapper>

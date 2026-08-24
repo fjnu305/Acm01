@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.friend.mapper.FriendshipMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO friendship (user_low_id, user_high_id)
+        VALUES (#{userLowId}, #{userHighId})
+    </insert>
+
+    <delete id="deletePair">
+        DELETE FROM friendship
+        WHERE user_low_id = LEAST(#{userId}, #{friendId})
+          AND user_high_id = GREATEST(#{userId}, #{friendId})
+    </delete>
+
+    <select id="exists" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM friendship
+        WHERE user_low_id = LEAST(#{userId}, #{friendId})
+          AND user_high_id = GREATEST(#{userId}, #{friendId})
+    </select>
+
+    <select id="selectFriends" resultType="org.fjnu305.acm01.module.friend.vo.FriendVO">
+        SELECT u.id AS userId,
+               u.username,
+               u.nickname,
+               u.avatar,
+               u.school,
+               u.cf_rating AS cfRating,
+               f.created_time AS friendsSince,
+               (u.id = #{officialUserId}) AS official
+        FROM friendship f
+                 INNER JOIN user u ON u.id = CASE
+                    WHEN f.user_low_id = #{userId} THEN f.user_high_id
+                    ELSE f.user_low_id
+                 END AND u.deleted = 0
+        WHERE f.user_low_id = #{userId}
+           OR f.user_high_id = #{userId}
+        ORDER BY official DESC, f.created_time DESC
+    </select>
+</mapper>

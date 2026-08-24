@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.solution.mapper.SolutionMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO solution (user_id, title, content, problem_source, problem_id, tags, status,
+                              favorite_count, view_count, deleted)
+        VALUES (#{userId}, #{title}, #{content}, #{problemSource}, #{problemId}, #{tags}, #{status},
+                0, 0, 0)
+    </insert>
+
+    <update id="update">
+        UPDATE solution
+        SET title = #{title},
+            content = #{content},
+            problem_source = #{problemSource},
+            problem_id = #{problemId},
+            tags = #{tags},
+            status = #{status},
+            updated_time = NOW()
+        WHERE id = #{id} AND user_id = #{userId} AND deleted = 0
+    </update>
+
+    <update id="softDelete">
+        UPDATE solution
+        SET deleted = 1, updated_time = NOW()
+        WHERE id = #{id} AND user_id = #{userId} AND deleted = 0
+    </update>
+
+    <update id="takedown">
+        UPDATE solution
+        SET status = 2, updated_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectById" resultType="org.fjnu305.acm01.module.solution.entity.SolutionEntity">
+        SELECT id, user_id, title, content, problem_source, problem_id, tags, status,
+               favorite_count, view_count, created_time, updated_time, deleted
+        FROM solution
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectDetail" resultType="org.fjnu305.acm01.module.solution.vo.SolutionDetailVO">
+        SELECT s.id,
+               s.user_id AS userId,
+               COALESCE(u.nickname, u.username) AS authorName,
+               s.title,
+               s.content,
+               s.problem_source AS problemSource,
+               s.problem_id AS problemId,
+               s.tags,
+               s.status,
+               s.favorite_count AS favoriteCount,
+               s.view_count AS viewCount,
+               s.created_time AS createdTime,
+               CASE WHEN f.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS favorited
+        FROM solution s
+                 INNER JOIN user u ON u.id = s.user_id AND u.deleted = 0
+                 LEFT JOIN solution_favorite f ON f.solution_id = s.id AND f.user_id = #{viewerId}
+        WHERE s.id = #{id} AND s.deleted = 0
+    </select>
+
+    <sql id="ListWhere">
+        FROM solution s
+                 INNER JOIN user u ON u.id = s.user_id AND u.deleted = 0
+        WHERE s.deleted = 0 AND s.status = 1
+        <if test="keyword != null and keyword != ''">
+            AND (s.title LIKE CONCAT('%', #{keyword}, '%')
+                OR s.content LIKE CONCAT('%', #{keyword}, '%')
+                OR s.tags LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="tag != null and tag != ''">
+            AND FIND_IN_SET(#{tag}, REPLACE(s.tags, ' ', '')) > 0
+        </if>
+    </sql>
+
+    <select id="selectPage" resultType="org.fjnu305.acm01.module.solution.vo.SolutionVO">
+        SELECT s.id,
+               s.user_id AS userId,
+               COALESCE(u.nickname, u.username) AS authorName,
+               s.title,
+               s.problem_source AS problemSource,
+               s.problem_id AS problemId,
+               s.tags,
+               s.favorite_count AS favoriteCount,
+               s.view_count AS viewCount,
+               s.created_time AS createdTime,
+               FALSE AS favorited
+        <include refid="ListWhere"/>
+        ORDER BY s.created_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        <include refid="ListWhere"/>
+    </select>
+
+    <select id="selectFavoritePage" resultType="org.fjnu305.acm01.module.solution.vo.SolutionVO">
+        SELECT s.id,
+               s.user_id AS userId,
+               COALESCE(u.nickname, u.username) AS authorName,
+               s.title,
+               s.problem_source AS problemSource,
+               s.problem_id AS problemId,
+               s.tags,
+               s.favorite_count AS favoriteCount,
+               s.view_count AS viewCount,
+               s.created_time AS createdTime,
+               TRUE AS favorited
+        FROM solution_favorite f
+                 INNER JOIN solution s ON s.id = f.solution_id AND s.deleted = 0 AND s.status = 1
+                 INNER JOIN user u ON u.id = s.user_id AND u.deleted = 0
+        WHERE f.user_id = #{userId}
+        ORDER BY f.created_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countFavoritePage" resultType="long">
+        SELECT COUNT(1)
+        FROM solution_favorite f
+                 INNER JOIN solution s ON s.id = f.solution_id AND s.deleted = 0 AND s.status = 1
+        WHERE f.user_id = #{userId}
+    </select>
+
+    <update id="incrementViewCount">
+        UPDATE solution SET view_count = view_count + 1 WHERE id = #{id}
+    </update>
+
+    <update id="updateFavoriteCount">
+        UPDATE solution SET favorite_count = GREATEST(0, favorite_count + #{delta}) WHERE id = #{id}
+    </update>
+
+    <select id="searchFallback" resultType="org.fjnu305.acm01.module.solution.vo.SolutionVO">
+        SELECT s.id,
+               s.user_id AS userId,
+               COALESCE(u.nickname, u.username) AS authorName,
+               s.title,
+               s.problem_source AS problemSource,
+               s.problem_id AS problemId,
+               s.tags,
+               s.favorite_count AS favoriteCount,
+               s.view_count AS viewCount,
+               s.created_time AS createdTime,
+               FALSE AS favorited
+        FROM solution s
+                 INNER JOIN user u ON u.id = s.user_id AND u.deleted = 0
+        WHERE s.deleted = 0 AND s.status = 1
+          AND (s.title LIKE CONCAT('%', #{keyword}, '%')
+            OR s.content LIKE CONCAT('%', #{keyword}, '%')
+            OR s.tags LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY s.created_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countSearchFallback" resultType="long">
+        SELECT COUNT(1)
+        FROM solution s
+        WHERE s.deleted = 0 AND s.status = 1
+          AND (s.title LIKE CONCAT('%', #{keyword}, '%')
+            OR s.content LIKE CONCAT('%', #{keyword}, '%')
+            OR s.tags LIKE CONCAT('%', #{keyword}, '%'))
+    </select>
+
+    <select id="selectAggregatedTagsByUserId" resultType="string">
+        SELECT GROUP_CONCAT(DISTINCT tags SEPARATOR ',')
+        FROM solution
+        WHERE user_id = #{userId} AND status = 1 AND deleted = 0 AND tags IS NOT NULL AND tags != ''
+    </select>
+
+    <select id="selectAllTags" resultType="string">
+        SELECT tags
+        FROM solution
+        WHERE deleted = 0 AND status = 1 AND tags IS NOT NULL AND tags != ''
+    </select>
+</mapper>

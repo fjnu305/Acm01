@@ -1,7 +1,7 @@
 # 模块 2：赛事聚合与爬虫 — 实施文档
 
 > 多平台赛事统一展示、定时/手动爬虫、入库去重、爬取日志  
-> 文档版本：v1.0 | 状态：**核心链路已完成（CF + AtCoder 可用）**
+> 文档版本：v2.0 | 状态：**7 平台抓取 + Redis 缓存/限流 + 详情/日志 API 已完成**
 
 ---
 
@@ -18,10 +18,17 @@
 
 **本模块暂不做（后续迭代）：**
 
-- Quartz 定时任务自动调度（接口已预留 `CrawlTriggerType.AUTO`）
-- Redis 赛事缓存、爬虫限流
-- 牛客 / 洛谷 / CCPC / ICPC / 蓝桥杯 真实抓取（当前为 stub）
-- 赛事详情页、日历视图 API
+- 赛事日历视图 API
+- 热门赛事独立预热任务
+
+**v2.0 已完成：**
+
+- 洛谷 / CCPC / ICPC / 蓝桥杯抓取实现
+- Redis 列表缓存（`ContestCacheService`，爬虫后失效）
+- 爬虫 Redis 限流（`CrawlRateLimiter`，读 `rate_limit_sec`）
+- `GET /api/contests/{id}` 赛事详情
+- `GET /api/admin/crawl/logs` 爬取日志分页
+- 前端：`AdminCrawlLogsPage`、`ContestDetailPage`
 
 **依赖：** 模块 0（Result、异常、MyBatis）、模块 1（Admin 手动爬虫需 `ROLE_ADMIN`）
 

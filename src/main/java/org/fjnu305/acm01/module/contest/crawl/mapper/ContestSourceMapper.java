@@ -10,5 +10,7 @@ public interface ContestSourceMapper {
 
     int updateOnFailure(@Param("sourceCode") String sourceCode);
 
-    Integer selectCrawlEnabled(@Param("sourceCode") String sourceCode);
+    int selectCrawlEnabled(@Param("sourceCode") String sourceCode);
+
+    Integer selectRateLimitSec(@Param("sourceCode") String sourceCode);
 }

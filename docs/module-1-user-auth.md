@@ -1,7 +1,7 @@
 # 模块 1：用户与权限体系 — 实施文档
 
 > 注册 / 登录、RBAC 角色权限、分角色主页、管理后台基础  
-> 文档版本：v1.0 | 状态：**核心功能已完成**
+> 文档版本：v2.0 | 状态：**管理后台与用户 CRUD 已完成**
 
 ---
 
@@ -15,12 +15,14 @@
 | 管理员能力 | 管理面板 API，仅 ADMIN 可访问 |
 | 前后端分离 | React 登录 / 注册 / 分角色主页 |
 
-**本模块暂不做（后续迭代）：**
+**v2.0 已完成：**
 
-- `permission` / `role_permission` 细粒度权限
-- 管理员审核内容、用户管理 CRUD 界面
-- 忘记密码、邮箱验证
-- OJ 账号绑定与 Rating 同步（模块 10）
+- `GET /api/admin/users` 用户分页搜索
+- `PUT /api/admin/users/{id}/status` 禁用/启用
+- `PUT /api/admin/users/{id}/roles` 角色分配
+- 仪表盘今日注册数真实统计
+- JWT Filter 每次请求从 DB 刷新角色，防 Token 提权
+- 前端 `AdminUsersPage`
 
 **依赖：** 模块 0（Result、Security、MyBatis、BCrypt）
 
@@ -62,7 +64,8 @@ resources/mapper/
 **SQL 脚本：**
 
 ```text
-resources/db/init-roles.sql            # 初始化 USER / ADMIN 角色
+resources/db/init-rbac.sql             # 建表 role/permission/user_role/role_permission + 角色数据
+resources/db/init-roles.sql            # 仅补 USER / ADMIN 角色（已有表时用）
 ```
 
 ---
@@ -81,23 +84,32 @@ user ──< user_role >── role
 
 ### 3.2 `user` — 用户表（已实现）
 
-用户基础信息 + ACM 竞技字段合并在一张表（未单独拆 `user_profile`）。
+用户基础信息 + ACM 竞技字段合并在一张表（未单独拆 `user_profile`）。  
+建表脚本：`src/main/resources/db/init-user.sql`
 
 | 字段分组 | 主要字段 |
 |----------|----------|
 | 账号 | `username`(唯一)、`password`(BCrypt)、`status`、`deleted` |
-| 资料 | `nickname`、`email`、`avatar`、`gender`、`school`、`bio` |
-| OJ 账号 | `cf_handle`、`atcoder_handle`、`nowcoder_handle`、`luogu_handle` |
+| 资料 | `nickname`、`email`、`avatar`、`gender`(默认0)、`school`、`bio` |
+| OJ 账号 | `cf_handle`、`atcoder_handle`、`nowcoder_handle`、`luogu_handle`（VARCHAR(50)） |
 | 竞技数据 | `cf_rating`、`solved_count`、`ac_count`、`contest_count` |
 | 时间 | `last_login_time`、`created_time`、`updated_time` |
 
+**索引：** `username`(UNIQUE)、`idx_cf_rating`、`idx_solved_count`、`idx_status`
+
 ### 3.3 `role` — 角色表
 
-| 字段 | 说明 |
-|------|------|
-| `role_code` | 唯一，如 `USER`、`ADMIN` |
-| `role_name` | 显示名 |
-| `status` | 1 启用 |
+> 建表脚本：`src/main/resources/db/init-rbac.sql`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | BIGINT | 主键，自增 |
+| `role_code` | VARCHAR(50) | 唯一，如 `USER`、`ADMIN` |
+| `role_name` | VARCHAR(50) | 显示名 |
+| `status` | TINYINT | 默认 1；1 启用，0 禁用 |
+| `created_time` | DATETIME | 创建时间 |
+
+**索引：** `role_code`(UNIQUE)
 
 ### 3.4 `user_role` — 用户角色关联
 
@@ -105,10 +117,20 @@ user ──< user_role >── role
 |------|------|
 | `user_id` + `role_id` | 联合主键 |
 
-### 3.5 初始化 SQL
+### 3.5 `permission` / `role_permission`（表已建，代码未用）
+
+| 表 | 主要字段 |
+|----|----------|
+| `permission` | `perm_code`(VARCHAR(100) UNIQUE)、`perm_name`、`created_time` |
+| `role_permission` | `role_id` + `permission_id` 联合主键 |
+
+线库 `permission` 表已有权限种子数据（`AUTO_INCREMENT` 可从 63 起）；应用层鉴权当前仍基于 `role` + `user_role`，未读取 `role_permission`。
+
+### 3.6 初始化 SQL
 
 ```sql
--- resources/db/init-roles.sql
+-- 新库：init-rbac.sql（建表 + 角色数据）
+-- 已有表：init-roles.sql（仅补角色数据）
 INSERT IGNORE INTO role (role_code, role_name, status) VALUES
 ('USER', '普通用户', 1),
 ('ADMIN', '管理员', 1);
@@ -376,7 +398,7 @@ acm01-web/src/
 | 项 | 说明 |
 |----|------|
 | JWT roles 信任 Token | Filter 从 JWT 读角色，撤销角色后旧 Token 仍有效至过期 |
-| permission 表未用 | 当前仅角色级 RBAC，未做按钮级权限 |
+| permission 表未用 | 线库已建 `permission`/`role_permission` 并有种子数据；应用层仍仅角色级 RBAC |
 | user 与 profile 未拆表 | 单表存储，后期数据量大可考虑拆分 |
 | AdminService 部分占位 | `pendingReviews` 等硬编码 0 |
 

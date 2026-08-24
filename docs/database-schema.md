@@ -2,7 +2,7 @@
 
 > 数据库：`acm`（MySQL 8.x，InnoDB，utf8mb4）  
 > 依据：`src/main/resources/db/*.sql`、Entity、Mapper XML 整理  
-> 更新日期：2026-07-12
+> 更新日期：2026-08-23
 
 ---
 
@@ -10,17 +10,30 @@
 
 | 表名 | 模块 | 说明 | 建表脚本 |
 |------|------|------|----------|
-| `user` | 模块 1 用户 | 用户账号与资料、OJ 竞技字段 | 无独立脚本，见 §2.1（由代码反推） |
-| `role` | 模块 1 用户 | 角色定义（USER / ADMIN） | 无独立脚本，见 §2.2 |
-| `user_role` | 模块 1 用户 | 用户 ↔ 角色多对多 | 无独立脚本，见 §2.3 |
-| `permission` | 模块 1 用户 | 细粒度权限（规划） | 文档提及，代码未使用 |
-| `role_permission` | 模块 1 用户 | 角色 ↔ 权限（规划） | 文档提及，代码未使用 |
+| `user` | 模块 1 用户 | 用户账号与资料、OJ 竞技字段 | `init-user.sql` |
+| `role` | 模块 1 用户 | 角色定义（USER / ADMIN） | `init-rbac.sql` |
+| `user_role` | 模块 1 用户 | 用户 ↔ 角色多对多 | `init-rbac.sql` |
+| `permission` | 模块 1 用户 | 细粒度权限（表已建，代码未用） | `init-rbac.sql` |
+| `role_permission` | 模块 1 用户 | 角色 ↔ 权限（表已建，代码未用） | `init-rbac.sql` |
 | `contest` | 模块 2 赛事 | 统一赛事表 | `init-contest.sql` |
 | `contest_source` | 模块 2 爬虫 | 爬虫源配置 | `init-contest-crawl.sql` |
 | `contest_crawl_log` | 模块 2 爬虫 | 爬虫执行日志 | `init-contest-crawl.sql` |
 | `contest_subscription` | 模块 3 订阅 | 用户赛事订阅意图 | `init-subscription.sql` |
 | `notify_task` | 模块 3 订阅 | 待执行的邮件提醒任务 | `init-subscription.sql` |
 | `notify_log` | 模块 4 通知 | 邮件发送审计 | `init-subscription.sql` |
+| `solution` | 模块 8 题解 | 题解主表 | `init-solution.sql` |
+| `solution_favorite` | 模块 8 题解 | 题解收藏 | `init-solution.sql` |
+| `solution_template` | 模块 8 题解 | 算法模板库 | `init-solution.sql` |
+| `team_post` | 模块 7 组队 | 组队帖 | `init-team.sql` |
+| `team_member` | 模块 7 组队 | 成员与邀请 | `init-team.sql` |
+| `match_record` | 模块 7 组队 | 匹配推荐记录 | `init-team.sql` |
+| `oj_account` | 模块 10 OJ 同步 | OJ 账号绑定 | `init-oj-sync.sql` |
+| `user_rating_snapshot` | 模块 10 OJ 同步 | Rating 每日快照 | `init-oj-sync.sql` |
+| `topic` | 模块 6 社交 | 话题 | `init-social.sql` |
+| `post` | 模块 6 社交 | 动态 | `init-social.sql` |
+| `comment` | 模块 6 社交 | 评论 | `init-social.sql` |
+| `post_like` | 模块 6 社交 | 点赞 | `init-social.sql` |
+| `follow` | 模块 6 社交 | 关注 | `init-social.sql` |
 
 ---
 
@@ -31,69 +44,110 @@
 ```text
 user ──< user_role >── role
                          │
-                    role_permission（未接入）
+                    role_permission（表已建，代码未用）
                          │
-                    permission（未接入）
+                    permission（表已建，代码未用）
 ```
 
 ### 2.2 `user` — 用户表
 
 > 业务代码：`UserEntity`、`UserMapper.xml`  
-> 说明：账号信息与 ACM 竞技字段合并在单表，未单独拆 `user_profile`。
+> 建表脚本：`init-user.sql`  
+> 说明：账号信息与 ACM 竞技字段合并在单表，未单独拆 `user_profile`。  
+> 字符集：`utf8mb4` / `utf8mb4_0900_ai_ci`
 
 | 字段 | 类型 | 空 | 默认 | 说明 |
 |------|------|----|------|------|
-| `id` | BIGINT | NO | AUTO_INCREMENT | 主键 |
+| `id` | BIGINT | NO | AUTO_INCREMENT | 用户 ID，主键 |
 | `username` | VARCHAR(50) | NO | — | 登录名，唯一 |
 | `password` | VARCHAR(255) | NO | — | BCrypt 密文 |
 | `nickname` | VARCHAR(50) | YES | NULL | 昵称 |
-| `email` | VARCHAR(100) | YES | NULL | 邮箱 |
-| `avatar` | VARCHAR(500) | YES | NULL | 头像 URL |
-| `gender` | TINYINT | YES | NULL | 性别 |
+| `email` | VARCHAR(100) | YES | NULL | 邮箱（邮件提醒收件地址） |
+| `avatar` | VARCHAR(500) | YES | NULL | 头像 URL（本地上传存 `/uploads/avatars/...`） |
+| `gender` | TINYINT | YES | 0 | 性别：0 未知，1 男，2 女 |
 | `school` | VARCHAR(100) | YES | NULL | 学校 |
 | `bio` | VARCHAR(500) | YES | NULL | 个人简介 |
-| `cf_handle` | VARCHAR(64) | YES | NULL | Codeforces _handle |
-| `atcoder_handle` | VARCHAR(64) | YES | NULL | AtCoder handle |
-| `nowcoder_handle` | VARCHAR(64) | YES | NULL | 牛客 handle |
-| `luogu_handle` | VARCHAR(64) | YES | NULL | 洛谷 handle |
-| `cf_rating` | INT | YES | 0 | CF Rating |
-| `solved_count` | INT | YES | 0 | 解题数 |
-| `ac_count` | INT | YES | 0 | AC 数 |
-| `contest_count` | INT | YES | 0 | 参赛数 |
-| `status` | TINYINT | NO | 1 | 1 正常 0 禁用 |
+| `cf_handle` | VARCHAR(50) | YES | NULL | Codeforces 账号 |
+| `atcoder_handle` | VARCHAR(50) | YES | NULL | AtCoder 账号 |
+| `nowcoder_handle` | VARCHAR(50) | YES | NULL | 牛客账号 |
+| `luogu_handle` | VARCHAR(50) | YES | NULL | 洛谷账号 |
+| `cf_rating` | INT | YES | 0 | Codeforces Rating |
+| `solved_count` | INT | YES | 0 | 总刷题数 |
+| `ac_count` | INT | YES | 0 | AC 题目数 |
+| `contest_count` | INT | YES | 0 | 参赛场次 |
+| `status` | TINYINT | YES | 1 | 状态：1 正常，0 禁用 |
 | `last_login_time` | DATETIME | YES | NULL | 最后登录时间 |
 | `created_time` | DATETIME | YES | CURRENT_TIMESTAMP | 创建时间 |
-| `updated_time` | DATETIME | YES | ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
-| `deleted` | TINYINT | NO | 0 | 逻辑删除 0 否 1 是 |
+| `updated_time` | DATETIME | YES | CURRENT_TIMESTAMP ON UPDATE | 更新时间 |
+| `deleted` | TINYINT | YES | 0 | 逻辑删除：0 未删除，1 已删除 |
 
-**索引（推断）：**
+**索引：**
 
 | 索引名 | 类型 | 字段 |
 |--------|------|------|
 | PRIMARY | 主键 | `id` |
-| uk_username | UNIQUE | `username` |
+| `username` | UNIQUE | `username` |
+| `idx_cf_rating` | 普通 | `cf_rating` |
+| `idx_solved_count` | 普通 | `solved_count` |
+| `idx_status` | 普通 | `status` |
+
+**建表 DDL（与线上一致）：**
+
+```sql
+-- 见 src/main/resources/db/init-user.sql
+CREATE TABLE `user` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+    `username` VARCHAR(50) NOT NULL COMMENT '用户名',
+    `password` VARCHAR(255) NOT NULL COMMENT '密码',
+    `nickname` VARCHAR(50) NULL DEFAULT NULL COMMENT '昵称',
+    `email` VARCHAR(100) NULL DEFAULT NULL COMMENT '邮箱',
+    `avatar` VARCHAR(500) NULL DEFAULT NULL COMMENT '头像URL',
+    `gender` TINYINT NULL DEFAULT 0 COMMENT '性别 0未知 1男 2女',
+    `school` VARCHAR(100) NULL DEFAULT NULL COMMENT '学校',
+    `bio` VARCHAR(500) NULL DEFAULT NULL COMMENT '个人简介',
+    `cf_handle` VARCHAR(50) NULL DEFAULT NULL COMMENT 'Codeforces账号',
+    `atcoder_handle` VARCHAR(50) NULL DEFAULT NULL COMMENT 'AtCoder账号',
+    `nowcoder_handle` VARCHAR(50) NULL DEFAULT NULL COMMENT '牛客账号',
+    `luogu_handle` VARCHAR(50) NULL DEFAULT NULL COMMENT '洛谷账号',
+    `cf_rating` INT NULL DEFAULT 0 COMMENT 'Codeforces Rating',
+    `solved_count` INT NULL DEFAULT 0 COMMENT '总刷题数',
+    `ac_count` INT NULL DEFAULT 0 COMMENT 'AC题目数',
+    `contest_count` INT NULL DEFAULT 0 COMMENT '参赛场次',
+    `status` TINYINT NULL DEFAULT 1 COMMENT '状态 1正常 0禁用',
+    `last_login_time` DATETIME NULL DEFAULT NULL COMMENT '最后登录时间',
+    `created_time` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_time` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted` TINYINT NULL DEFAULT 0 COMMENT '逻辑删除 0未删除 1已删除',
+    PRIMARY KEY (`id`),
+    UNIQUE INDEX `username` (`username`),
+    INDEX `idx_cf_rating` (`cf_rating`),
+    INDEX `idx_solved_count` (`solved_count`),
+    INDEX `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
+```
 
 ---
 
 ### 2.3 `role` — 角色表
 
 > 业务代码：`RoleEntity`、`RoleMapper.xml`  
-> 初始化：`init-roles.sql`
+> 建表脚本：`init-rbac.sql`  
+> 字符集：`utf8mb4` / `utf8mb4_0900_ai_ci`
 
 | 字段 | 类型 | 空 | 默认 | 说明 |
 |------|------|----|------|------|
 | `id` | BIGINT | NO | AUTO_INCREMENT | 主键 |
-| `role_code` | VARCHAR(32) | NO | — | 角色编码，如 `USER`、`ADMIN`，唯一 |
-| `role_name` | VARCHAR(64) | NO | — | 显示名 |
-| `status` | TINYINT | NO | 1 | 1 启用 0 禁用 |
+| `role_code` | VARCHAR(50) | NO | — | 角色编码，如 `USER`、`ADMIN`，唯一 |
+| `role_name` | VARCHAR(50) | NO | — | 角色名称 |
+| `status` | TINYINT | YES | 1 | 状态：1 启用，0 禁用 |
 | `created_time` | DATETIME | YES | CURRENT_TIMESTAMP | 创建时间 |
 
-**索引（推断）：**
+**索引：**
 
 | 索引名 | 类型 | 字段 |
 |--------|------|------|
 | PRIMARY | 主键 | `id` |
-| uk_role_code | UNIQUE | `role_code` |
+| `role_code` | UNIQUE | `role_code` |
 
 **初始数据：**
 
@@ -107,14 +161,15 @@ INSERT IGNORE INTO role (role_code, role_name, status) VALUES
 
 ### 2.4 `user_role` — 用户角色关联表
 
-> 业务代码：`RoleMapper.insertUserRole`、`selectRoleCodesByUserId`
+> 业务代码：`RoleMapper.insertUserRole`、`selectRoleCodesByUserId`  
+> 建表脚本：`init-rbac.sql`
 
 | 字段 | 类型 | 空 | 默认 | 说明 |
 |------|------|----|------|------|
 | `user_id` | BIGINT | NO | — | 用户 ID，FK → `user.id` |
 | `role_id` | BIGINT | NO | — | 角色 ID，FK → `role.id` |
 
-**索引（推断）：**
+**索引：**
 
 | 索引名 | 类型 | 字段 |
 |--------|------|------|
@@ -129,9 +184,52 @@ SELECT <用户ID>, id FROM role WHERE role_code = 'ADMIN';
 
 ---
 
-### 2.5 `permission` / `role_permission`（规划）
+### 2.5 `permission` — 权限表
 
-模块 1 文档中提及「表已建、代码未用」，当前仓库内**无建表脚本、无 Entity/Mapper**。后续细粒度 RBAC 迭代时补充。
+> 建表脚本：`init-rbac.sql`  
+> 说明：线库已建表并有初始权限数据；**业务代码尚未接入**（当前鉴权仅用 `role` + `user_role`）。
+
+| 字段 | 类型 | 空 | 默认 | 说明 |
+|------|------|----|------|------|
+| `id` | BIGINT | NO | AUTO_INCREMENT | 主键 |
+| `perm_code` | VARCHAR(100) | NO | — | 权限编码，唯一 |
+| `perm_name` | VARCHAR(50) | NO | — | 权限名称 |
+| `created_time` | DATETIME | YES | CURRENT_TIMESTAMP | 创建时间 |
+
+**索引：**
+
+| 索引名 | 类型 | 字段 |
+|--------|------|------|
+| PRIMARY | 主键 | `id` |
+| `perm_code` | UNIQUE | `perm_code` |
+
+---
+
+### 2.6 `role_permission` — 角色权限关联表
+
+> 建表脚本：`init-rbac.sql`  
+> 说明：线库已建表；**业务代码尚未接入**。
+
+| 字段 | 类型 | 空 | 默认 | 说明 |
+|------|------|----|------|------|
+| `role_id` | BIGINT | NO | — | 角色 ID，FK → `role.id` |
+| `permission_id` | BIGINT | NO | — | 权限 ID，FK → `permission.id` |
+
+**索引：**
+
+| 索引名 | 类型 | 字段 |
+|--------|------|------|
+| PRIMARY | 主键 | `role_id`, `permission_id` |
+
+**建表 DDL（RBAC 四表，与线上一致）：**
+
+```sql
+-- 见 src/main/resources/db/init-rbac.sql
+CREATE TABLE `role` ( ... );
+CREATE TABLE `permission` ( ... );
+CREATE TABLE `user_role` ( ... );
+CREATE TABLE `role_permission` ( ... );
+```
 
 ---
 
@@ -389,7 +487,59 @@ LIMIT 200
 
 ---
 
-## 5. ER 关系简图
+## 5. 模块 7：组队匹配
+
+> 脚本：`src/main/resources/db/init-team.sql`  
+> 文档：[`module-7-team.md`](module-7-team.md)
+
+### 5.1 `team_post`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | BIGINT | 主键 |
+| `user_id` | BIGINT | 发布者 |
+| `title` | VARCHAR(255) | 标题 |
+| `description` | TEXT | 描述 |
+| `rating_min` / `rating_max` | INT | 期望 Rating 区间 |
+| `region` | VARCHAR(100) | 地区/学校 |
+| `tags` | VARCHAR(500) | 算法标签，逗号分隔 |
+| `member_limit` | INT | 目标人数 |
+| `current_count` | INT | 当前人数 |
+| `status` | TINYINT | 1 招募中 · 2 已满 · 0 关闭 |
+
+### 5.2 `team_member` / `match_record`
+
+- `team_member`：`(team_post_id, user_id)` 唯一；`status` 0 待接受 / 1 已加入
+- `match_record`：每次推荐写入 `match_score` 快照
+
+---
+
+## 6. 模块 8：题解分享
+
+> 脚本：`src/main/resources/db/init-solution.sql`  
+> 文档：[`module-8-solution.md`](module-8-solution.md)
+
+### 6.1 `solution`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | BIGINT | 主键 |
+| `user_id` | BIGINT | 作者 |
+| `title` | VARCHAR(255) | 标题 |
+| `content` | MEDIUMTEXT | Markdown（入库前 XSS 消毒） |
+| `problem_source` / `problem_id` | VARCHAR | 题目来源与编号 |
+| `tags` | VARCHAR(500) | 标签 |
+| `status` | TINYINT | 1 发布 · 0 草稿 · 2 下架 |
+| `favorite_count` / `view_count` | INT | 计数 |
+
+### 6.2 `solution_favorite` / `solution_template`
+
+- 收藏：`(user_id, solution_id)` 联合主键
+- 模板：系统预置二分、Dijkstra 等模板
+
+---
+
+## 7. ER 关系简图
 
 ```text
 ┌─────────┐       ┌───────────┐       ┌─────────┐
@@ -416,29 +566,40 @@ LIMIT 200
 
 ---
 
-## 6. 初始化脚本清单
+## 8. 初始化脚本清单
 
 | 文件 | 内容 |
 |------|------|
 | `src/main/resources/db/init-contest.sql` | 建表 `contest` |
 | `src/main/resources/db/init-contest-crawl.sql` | 建表 `contest_source`、`contest_crawl_log` + 平台初始数据 |
-| `src/main/resources/db/init-roles.sql` | 初始化 `role` 数据（USER / ADMIN） |
+| `src/main/resources/db/init-user.sql` | 建表 `user` |
+| `src/main/resources/db/init-rbac.sql` | 建表 `role`、`permission`、`user_role`、`role_permission` + 角色初始数据 |
+| `src/main/resources/db/init-roles.sql` | 仅插入角色数据（已有表时用） |
 | `src/main/resources/db/init-subscription.sql` | 建表 `contest_subscription`、`notify_task`、`notify_log` |
+| `src/main/resources/db/init-oj-sync.sql` | 建表 `oj_account`、`user_rating_snapshot` |
+| `src/main/resources/db/init-social.sql` | 建表 `topic`、`post`、`comment`、`post_like`、`follow` + 话题初始数据 |
+| `src/main/resources/db/init-solution.sql` | 建表 `solution`、`solution_favorite`、`solution_template` |
+| `src/main/resources/db/init-team.sql` | 建表 `team_post`、`team_member`、`match_record` |
 
 **建议执行顺序：**
 
 ```text
-1. user / role / user_role（手动或历史脚本，仓库内暂无 CREATE）
-2. init-roles.sql
+1. init-user.sql
+2. init-rbac.sql
 3. init-contest.sql
 4. init-contest-crawl.sql
 5. init-subscription.sql
+6. init-oj-sync.sql
+7. init-social.sql
+8. init-solution.sql
+9. init-team.sql
 ```
 
 ---
 
-## 7. 备注
+## 9. 备注
 
 - 连接配置见 `application.yml`：`jdbc:mysql://localhost:3306/acm`
-- 模块 1 用户表结构根据 Entity/Mapper **反推**，若线库字段有差异以实际 DDL 为准
-- 后续模块（社交等）表尚未创建，不在本文档范围内
+- `user` 表结构以 `init-user.sql` 及线库 DDL 为准（2026-07-12 校对）
+- 旧库若缺少 `school`/`bio` 可执行 `alter-user-profile-fields.sql`
+- 模块 7/8 表结构见本文档第 5、6 节；模块 6、10 见各模块文档

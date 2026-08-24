@@ -11,10 +11,10 @@
 | JWT 签发/解析 | `Security/JwtTokenProvider.java` | ✅ 可用 |
 | JWT 配置 | `Security/JwtProperties.java` | ✅ 可用 |
 | 密钥加载 | `Common/JwtSecretFileUtil.java` | ✅ 可用 |
-| 认证 Filter | `Security/JwtAuthenticationFilter.java` | ⚠️ 需补全 |
+| 认证 Filter | `Security/JwtAuthenticationFilter.java` | ✅ 可用 |
 | MySQL 数据源 | `resources/application.yml` | ✅ 已配置 |
 | Redis | `pom.xml` 依赖 | ❌ 未使用 |
-| Elasticsearch | `pom.xml` 依赖 | ❌ 未使用 |
+| Elasticsearch | `pom.xml` 依赖 | ✅ 模块 9 已接入（可选启用） |
 | MyBatis | `pom.xml` 依赖 | ❌ 未使用 |
 
 ---
@@ -50,11 +50,11 @@
 | 3 | 订阅提醒 | 高并发异步订阅提醒 | P4 |
 | 4 | 消息分发 | RabbitMQ 异步解耦 | P4 |
 | 5 | 实时通信 WebSocket | 实时在线消息推送 | P5 |
-| 6 | 社交社区 | ACmer 社交交流 | P6 |
+| 6 | 社交社区 | ACmer 社交交流 | P6 **MVP 已完成** |
 | 7 | 组队匹配 | 实时社交智能组队 | P7 |
 | 8 | 题解分享 | 题解分享专区 | P8 |
 | 9 | 全文检索 ES | 分布式全文检索引擎 | P9 |
-| 10 | OJ 数据同步 | 跨平台竞技数据同步 | P10 最后 |
+| 10 | OJ 数据同步 | 跨平台竞技数据同步 | P10 **MVP 已完成** |
 
 ---
 
@@ -78,7 +78,7 @@
 
 | 子项 | 内容 |
 |------|------|
-| 核心表 | `user`、`user_profile`、`user_role` |
+| 核心表 | `user`、`role`、`user_role` |
 | 核心接口 | 注册/登录、个人主页、管理员审核 |
 | 技术点 | BCrypt 密码、JWT 鉴权、RBAC（USER / ADMIN） |
 | 对外提供 | 用户 ID、标签（算法擅长、地区、Rating）→ 模块 6、7 |
@@ -178,6 +178,8 @@
 
 ### 模块 6：社交社区
 
+> **实施文档：** [`module-6-social.md`](module-6-social.md)
+
 | 子项 | 内容 |
 |------|------|
 | 核心表 | `post`、`comment`、`like`、`follow`、`topic` |
@@ -188,16 +190,20 @@
 | 对外提供 | 动态变更 → 模块 5 WebSocket 推送 |
 | 依赖 | 模块 1、5 |
 | 预估周期 | 2 周 |
+| 状态 | **MVP 已完成** |
 
 ---
 
 ### 模块 7：组队匹配
+
+> **实施文档：** [`module-7-team.md`](module-7-team.md)
 
 | 子项 | 内容 |
 |------|------|
 | 核心表 | `team_post`、`team_member`、`match_record` |
 | 匹配维度 | Rating 区间、地区、擅长算法（DP/图论/数据结构） |
 | 匹配公式 | `matchScore = w1×rating差 + w2×地区相同 + w3×算法标签重合度` |
+| 状态 | **MVP 已完成** |
 | 依赖 | 模块 1、5、6 |
 | 预估周期 | 1 ~ 1.5 周 |
 
@@ -205,10 +211,13 @@
 
 ### 模块 8：题解分享
 
+> **实施文档：** [`module-8-solution.md`](module-8-solution.md)
+
 | 子项 | 内容 |
 |------|------|
 | 核心表 | `solution`、`solution_favorite`、`solution_template` |
 | 核心能力 | 发布题解、收藏、评论、算法模板库 |
+| 状态 | **MVP 已完成** |
 | 依赖 | 模块 1、6 |
 | 预估周期 | 1 周 |
 
@@ -216,21 +225,27 @@
 
 ### 模块 9：全文检索 ES
 
+> **实施文档：** [`module-9-search.md`](module-9-search.md)
+
 | 组件 | 说明 |
 |------|------|
-| Canal | 监听 MySQL Binlog，`solution` / `post` 增量同步 ES |
-| IK 分词 | 题解标题、正文、标签检索 |
+| SearchSyncService | 发布时应用层同步 ES |
+| Canal | 监听 MySQL Binlog（**未来演进**，见模块 9 文档） |
+| IK 分词 | 题解标题、正文、标签检索（可后续换 IK） |
 | 高亮 | 搜索结果关键词高亮 |
+| 状态 | **MVP 已完成**（默认 MySQL 降级） |
 
 | 子项 | 内容 |
 |------|------|
 | 依赖 | 模块 8、6 |
-| 说明 | Canal 需单独部署；MVP 可用手动同步接口代替 |
+| 说明 | `search.enabled=false` 时无需 ES；启用后需配置 URI |
 | 预估周期 | 1 ~ 2 周 |
 
 ---
 
 ### 模块 10：OJ 数据同步
+
+> **实施文档：** [`module-10-oj-sync.md`](module-10-oj-sync.md)
 
 | 子项 | 内容 |
 |------|------|
@@ -240,6 +255,7 @@
 | 依赖 | 模块 1 |
 | 说明 | 模拟登录风险高，面试讲设计即可，实现可简化 |
 | 预估周期 | 2 周 |
+| 状态 | **MVP 已完成** |
 
 ---
 

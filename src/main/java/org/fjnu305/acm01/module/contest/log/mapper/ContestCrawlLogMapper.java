@@ -13,4 +13,11 @@ public interface ContestCrawlLogMapper {
 
     List<ContestCrawlLogEntity> selectRecentBySource(@Param("source") String source,
                                                      @Param("limit") int limit);
+
+    long countPage(@Param("source") String source, @Param("status") String status);
+
+    List<ContestCrawlLogEntity> selectPage(@Param("source") String source,
+                                           @Param("status") String status,
+                                           @Param("offset") int offset,
+                                           @Param("limit") int limit);
 }

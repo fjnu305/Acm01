@@ -65,6 +65,16 @@
         </foreach>
     </select>
 
+    <select id="selectSnapshotByKeys" resultMap="ContestResultMap">
+        SELECT id, source, external_id, raw_hash, start_time
+        FROM contest
+        WHERE deleted = 0
+          AND (source, external_id) IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            (#{item.source}, #{item.externalId})
+        </foreach>
+    </select>
+
     <insert id="batchInsert">
         INSERT INTO contest (
             source, external_id, title, description, url,

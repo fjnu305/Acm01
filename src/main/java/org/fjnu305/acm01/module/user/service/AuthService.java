@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.fjnu305.acm01.Common.exception.BusinessException;
 import org.fjnu305.acm01.Common.exception.ErrorCode;
 import org.fjnu305.acm01.Security.JwtTokenProvider;
+import org.fjnu305.acm01.module.friend.service.FriendshipBootstrapService;
 import org.fjnu305.acm01.module.user.dto.AuthResponse;
 import org.fjnu305.acm01.module.user.dto.LoginRequest;
 import org.fjnu305.acm01.module.user.dto.RegisterRequest;
@@ -30,6 +31,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
+    private final FriendshipBootstrapService friendshipBootstrapService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -52,6 +54,7 @@ public class AuthService {
         userMapper.insert(user);
 
         roleMapper.insertUserRole(user.getId(), defaultRole.getId());
+        friendshipBootstrapService.ensureOfficialFriend(user.getId());
 
         List<String> roles = roleMapper.selectRoleCodesByUserId(user.getId());
         String token = jwtTokenProvider.createToken(user.getId(), user.getUsername(), String.join(",", roles));
@@ -74,6 +77,7 @@ public class AuthService {
         }
 
         userMapper.updateLastLoginTime(user.getId());
+        friendshipBootstrapService.ensureOfficialFriend(user.getId());
         List<String> roles = roleMapper.selectRoleCodesByUserId(user.getId());
         if (roles.isEmpty()) {
             throw new BusinessException(ErrorCode.ROLE_NOT_FOUND, "User has no assigned role");

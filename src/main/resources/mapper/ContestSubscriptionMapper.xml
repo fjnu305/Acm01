@@ -45,6 +45,13 @@
         WHERE id = #{id} AND user_id = #{userId} AND status = 1
     </update>
 
+    <select id="selectActiveByContestId" resultType="org.fjnu305.acm01.module.subscription.entity.ContestSubscriptionEntity">
+        SELECT id, user_id, contest_id, remind_before_minutes, channel, status, created_time, updated_time
+        FROM contest_subscription
+        WHERE contest_id = #{contestId}
+          AND status = 1
+    </select>
+
     <select id="selectMyActive" resultType="org.fjnu305.acm01.module.subscription.vo.SubscriptionVO">
         SELECT s.id,
                s.contest_id       AS contestId,

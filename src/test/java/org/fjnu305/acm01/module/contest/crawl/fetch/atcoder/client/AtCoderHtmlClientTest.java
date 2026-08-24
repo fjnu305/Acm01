@@ -3,7 +3,7 @@ package org.fjnu305.acm01.module.contest.crawl.fetch.atcoder.client;
 import org.fjnu305.acm01.module.contest.crawl.fetch.atcoder.AtCoderCrawlProperties;
 import org.fjnu305.acm01.module.contest.crawl.fetch.atcoder.dto.AtCoderContestItem;
 import org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient;
-import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
+import org.fjnu305.acm01.Common.http.AppHttpProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,7 +21,7 @@ class AtCoderHtmlClientTest {
     @Mock
     private CrawlHttpClient crawlHttpClient;
     @Mock
-    private CrawlHttpProperties crawlHttpProperties;
+    private AppHttpProperties appHttpProperties;
     @Mock
     private AtCoderCrawlProperties atCoderCrawlProperties;
 

@@ -65,4 +65,99 @@
         SET last_login_time = NOW()
         WHERE id = #{id} AND deleted = 0
     </update>
+
+    <update id="updateProfile">
+        UPDATE user
+        SET nickname = #{nickname},
+            email = #{email},
+            school = #{school},
+            bio = #{bio},
+            updated_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateAvatar">
+        UPDATE user
+        SET avatar = #{avatar},
+            updated_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectPage" resultMap="UserResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM user
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (username LIKE CONCAT('%', #{keyword}, '%')
+                OR nickname LIKE CONCAT('%', #{keyword}, '%')
+                OR email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY created_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        FROM user
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (username LIKE CONCAT('%', #{keyword}, '%')
+                OR nickname LIKE CONCAT('%', #{keyword}, '%')
+                OR email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </select>
+
+    <update id="updateStatus">
+        UPDATE user
+        SET status = #{status},
+            updated_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="countTodayRegistrations" resultType="int">
+        SELECT COUNT(1)
+        FROM user
+        WHERE deleted = 0 AND DATE(created_time) = CURDATE()
+    </select>
+
+    <update id="updateCfRating">
+        UPDATE user
+        SET cf_rating = #{cfRating},
+            updated_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateCfHandle">
+        UPDATE user
+        SET cf_handle = #{cfHandle},
+            updated_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectActiveUserIds" resultType="long">
+        SELECT id
+        FROM user
+        WHERE deleted = 0
+          AND status = 1
+    </select>
+
+    <select id="selectSearchCandidates" resultMap="UserResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM user
+        WHERE deleted = 0
+          AND status = 1
+          AND id &lt;&gt; #{excludeUserId}
+          AND (
+              username LIKE CONCAT('%', #{keyword}, '%')
+              OR nickname LIKE CONCAT('%', #{keyword}, '%')
+          )
+        ORDER BY
+            CASE
+                WHEN username = #{keyword} OR nickname = #{keyword} THEN 0
+                WHEN username LIKE CONCAT(#{keyword}, '%') OR nickname LIKE CONCAT(#{keyword}, '%') THEN 1
+                ELSE 2
+            END,
+            created_time DESC
+        LIMIT #{limit}
+    </select>
 </mapper>

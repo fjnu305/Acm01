@@ -18,5 +18,11 @@ notify:
 
 spring:
   mail:
+    host: smtp.qq.com
+    port: 587
     username: 你的QQ号@qq.com
     password: ENC(这里粘贴加密工具输出的密文)
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true

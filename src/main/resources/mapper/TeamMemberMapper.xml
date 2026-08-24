@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.team.mapper.TeamMemberMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO team_member (team_post_id, user_id, role, status, pending_kind, joined_time)
+        VALUES (#{teamPostId}, #{userId}, #{role}, #{status}, #{pendingKind},
+                <choose>
+                    <when test="status == 1">NOW()</when>
+                    <otherwise>NULL</otherwise>
+                </choose>)
+    </insert>
+
+    <select id="selectById" resultType="org.fjnu305.acm01.module.team.entity.TeamMemberEntity">
+        SELECT id, team_post_id, user_id, role, status, pending_kind AS pendingKind,
+               joined_time, created_time
+        FROM team_member
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByTeamAndUser" resultType="org.fjnu305.acm01.module.team.entity.TeamMemberEntity">
+        SELECT id, team_post_id, user_id, role, status, pending_kind AS pendingKind,
+               joined_time, created_time
+        FROM team_member
+        WHERE team_post_id = #{teamPostId} AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByTeamPostId" resultType="org.fjnu305.acm01.module.team.vo.TeamMemberVO">
+        SELECT m.id,
+               m.user_id AS userId,
+               u.username,
+               u.nickname,
+               u.avatar,
+               u.cf_rating AS cfRating,
+               u.school,
+               m.role,
+               m.status,
+               m.pending_kind AS pendingKind,
+               m.joined_time AS joinedTime
+        FROM team_member m
+                 INNER JOIN user u ON u.id = m.user_id AND u.deleted = 0
+        WHERE m.team_post_id = #{teamPostId}
+        ORDER BY m.status DESC, m.joined_time ASC
+    </select>
+
+    <select id="selectAcceptedPreviewByTeamPostId"
+            resultType="org.fjnu305.acm01.module.team.vo.TeamMemberPreviewVO">
+        SELECT m.user_id AS userId,
+               u.username,
+               u.nickname,
+               u.avatar
+        FROM team_member m
+                 INNER JOIN user u ON u.id = m.user_id AND u.deleted = 0
+        WHERE m.team_post_id = #{teamPostId}
+          AND m.status = 1
+        ORDER BY m.joined_time ASC
+    </select>
+
+    <select id="selectMemberUserIds" resultType="long">
+        SELECT user_id FROM team_member WHERE team_post_id = #{teamPostId}
+    </select>
+
+    <select id="countAcceptedByTeamPostId" resultType="int">
+        SELECT COUNT(1)
+        FROM team_member
+        WHERE team_post_id = #{teamPostId}
+          AND status = 1
+    </select>
+
+    <select id="selectPendingByTeamPostId" resultType="org.fjnu305.acm01.module.team.entity.TeamMemberEntity">
+        SELECT id, team_post_id, user_id, role, status, pending_kind AS pendingKind,
+               joined_time, created_time
+        FROM team_member
+        WHERE team_post_id = #{teamPostId}
+          AND status = 0
+    </select>
+
+    <update id="acceptInvite">
+        UPDATE team_member
+        SET status = 1, joined_time = NOW(), pending_kind = NULL
+        WHERE id = #{id} AND user_id = #{userId} AND status = 0
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM team_member WHERE id = #{id}
+    </delete>
+</mapper>

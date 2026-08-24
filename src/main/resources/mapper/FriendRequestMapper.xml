@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.friend.mapper.FriendRequestMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO friend_request (requester_id, addressee_id, message, status)
+        VALUES (#{requesterId}, #{addresseeId}, #{message}, #{status})
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE friend_request
+        SET status = #{status}
+        WHERE id = #{id}
+        <if test="expectedStatus != null">
+            AND status = #{expectedStatus}
+        </if>
+    </update>
+
+    <update id="resend">
+        UPDATE friend_request
+        SET status = 0,
+            message = #{message},
+            updated_time = NOW()
+        WHERE id = #{id}
+          AND status IN (2, 3)
+    </update>
+
+    <select id="selectById" resultType="org.fjnu305.acm01.module.friend.entity.FriendRequestEntity">
+        SELECT id, requester_id AS requesterId, addressee_id AS addresseeId,
+               message, status, created_time AS createdTime, updated_time AS updatedTime
+        FROM friend_request
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByPair" resultType="org.fjnu305.acm01.module.friend.entity.FriendRequestEntity">
+        SELECT id, requester_id AS requesterId, addressee_id AS addresseeId,
+               message, status, created_time AS createdTime, updated_time AS updatedTime
+        FROM friend_request
+        WHERE requester_id = #{requesterId} AND addressee_id = #{addresseeId}
+        LIMIT 1
+    </select>
+
+    <select id="selectPendingBetween" resultType="org.fjnu305.acm01.module.friend.entity.FriendRequestEntity">
+        SELECT id, requester_id AS requesterId, addressee_id AS addresseeId,
+               message, status, created_time AS createdTime, updated_time AS updatedTime
+        FROM friend_request
+        WHERE status = 0
+          AND ((requester_id = #{userIdA} AND addressee_id = #{userIdB})
+            OR (requester_id = #{userIdB} AND addressee_id = #{userIdA}))
+        LIMIT 1
+    </select>
+
+    <sql id="RequestSelect">
+        SELECT r.id,
+               r.requester_id AS requesterId,
+               COALESCE(ru.nickname, ru.username) AS requesterName,
+               ru.avatar AS requesterAvatar,
+               r.addressee_id AS addresseeId,
+               COALESCE(au.nickname, au.username) AS addresseeName,
+               au.avatar AS addresseeAvatar,
+               r.message,
+               r.status,
+               r.created_time AS createdTime
+        FROM friend_request r
+                 INNER JOIN user ru ON ru.id = r.requester_id AND ru.deleted = 0
+                 INNER JOIN user au ON au.id = r.addressee_id AND au.deleted = 0
+    </sql>
+
+    <select id="selectIncoming" resultType="org.fjnu305.acm01.module.friend.vo.FriendRequestVO">
+        <include refid="RequestSelect"/>
+        WHERE r.addressee_id = #{addresseeId} AND r.status = 0
+        ORDER BY r.created_time DESC
+    </select>
+
+    <select id="selectOutgoing" resultType="org.fjnu305.acm01.module.friend.vo.FriendRequestVO">
+        <include refid="RequestSelect"/>
+        WHERE r.requester_id = #{requesterId} AND r.status = 0
+        ORDER BY r.created_time DESC
+    </select>
+
+    <select id="selectVoById" resultType="org.fjnu305.acm01.module.friend.vo.FriendRequestVO">
+        <include refid="RequestSelect"/>
+        WHERE r.id = #{id}
+    </select>
+</mapper>

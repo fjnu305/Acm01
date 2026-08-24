@@ -6,7 +6,7 @@ import org.fjnu305.acm01.module.contest.crawl.fetch.atcoder.AtCoderCrawlProperti
 import org.fjnu305.acm01.module.contest.crawl.fetch.atcoder.dto.AtCoderContestItem;
 import org.fjnu305.acm01.module.contest.crawl.exception.CrawlFetchException;
 import org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient;
-import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
+import org.fjnu305.acm01.Common.http.AppHttpProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -20,7 +20,7 @@ import java.util.List;
 public class AtCoderJsonClient {
 
     private final CrawlHttpClient crawlHttpClient;
-    private final CrawlHttpProperties crawlHttpProperties;
+    private final AppHttpProperties appHttpProperties;
     private final AtCoderCrawlProperties atCoderCrawlProperties;
 
     public List<AtCoderContestItem> fetch() {
@@ -33,7 +33,7 @@ public class AtCoderJsonClient {
         } catch (Exception e) {
             throw CrawlFetchException.parseError(
                     url,
-                    crawlHttpProperties.getMaxRetries(),
+                    appHttpProperties.getMaxRetries(),
                     crawlHttpClient.getLastAttemptCount(),
                     "AtCoder JSON parse failed: " + e.getMessage(),
                     e

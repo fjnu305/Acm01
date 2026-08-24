@@ -24,4 +24,10 @@
         FROM contest_source
         WHERE source_code = #{sourceCode}
     </select>
+
+    <select id="selectRateLimitSec" resultType="java.lang.Integer">
+        SELECT rate_limit_sec
+        FROM contest_source
+        WHERE source_code = #{sourceCode}
+    </select>
 </mapper>

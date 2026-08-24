@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.solution.mapper.SolutionTemplateMapper">
+
+    <select id="selectAll" resultType="org.fjnu305.acm01.module.solution.vo.SolutionTemplateVO">
+        SELECT id, name, category, content
+        FROM solution_template
+        <where>
+            <if test="category != null and category != ''">
+                category = #{category}
+            </if>
+        </where>
+        ORDER BY category, name
+    </select>
+
+    <select id="selectById" resultType="org.fjnu305.acm01.module.solution.entity.SolutionTemplateEntity">
+        SELECT id, name, category, content, created_by, created_time
+        FROM solution_template
+        WHERE id = #{id}
+    </select>
+</mapper>

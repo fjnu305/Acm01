@@ -25,4 +25,15 @@
     <select id="countUsers" resultType="int">
         SELECT COUNT(1) FROM user WHERE deleted = 0
     </select>
+
+    <delete id="deleteUserRoles">
+        DELETE FROM user_role WHERE user_id = #{userId}
+    </delete>
+
+    <select id="selectAllActive" resultType="org.fjnu305.acm01.module.user.entity.RoleEntity">
+        SELECT id, role_code AS roleCode, role_name AS roleName, status, created_time AS createdTime
+        FROM role
+        WHERE status = 1
+        ORDER BY id
+    </select>
 </mapper>

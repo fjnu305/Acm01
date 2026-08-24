@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.team.mapper.MatchRecordMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO match_record (team_post_id, user_id, match_score)
+        VALUES (#{teamPostId}, #{userId}, #{matchScore})
+    </insert>
+
+    <delete id="deleteByTeamPostId">
+        DELETE FROM match_record WHERE team_post_id = #{teamPostId}
+    </delete>
+
+    <select id="selectByTeamPostId" resultType="org.fjnu305.acm01.module.team.entity.MatchRecordEntity">
+        SELECT id, team_post_id, user_id, match_score, created_time
+        FROM match_record
+        WHERE team_post_id = #{teamPostId}
+        ORDER BY match_score DESC
+    </select>
+</mapper>

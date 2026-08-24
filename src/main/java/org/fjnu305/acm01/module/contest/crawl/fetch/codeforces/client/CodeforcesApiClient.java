@@ -6,7 +6,7 @@ import org.fjnu305.acm01.module.contest.crawl.fetch.codeforces.dto.CodeforcesCon
 import org.fjnu305.acm01.module.contest.crawl.fetch.codeforces.dto.CodeforcesContestListResponse.CodeforcesContestItem;
 import org.fjnu305.acm01.module.contest.crawl.exception.CrawlFetchException;
 import org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient;
-import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
+import org.fjnu305.acm01.Common.http.AppHttpProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -20,7 +20,7 @@ public class CodeforcesApiClient {
     public static final String API_URL = "https://codeforces.com/api/contest.list";
 
     private final CrawlHttpClient crawlHttpClient;
-    private final CrawlHttpProperties crawlHttpProperties;
+    private final AppHttpProperties appHttpProperties;
 
     public List<CodeforcesContestItem> fetchContests() {
         CodeforcesContestListResponse response =
@@ -30,7 +30,7 @@ public class CodeforcesApiClient {
             String comment = response != null ? response.getComment() : "empty response";
             throw CrawlFetchException.apiError(
                     API_URL,
-                    crawlHttpProperties.getMaxRetries(),
+                    appHttpProperties.getMaxRetries(),
                     "Codeforces API è¿”å›žå¤±è´¥: " + comment
             );
         }

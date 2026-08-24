@@ -4,6 +4,10 @@ server:
 spring:
   config:
     import: optional:classpath:application-local.yml
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/acm?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true
@@ -30,9 +34,24 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
+  elasticsearch:
+    uris: ${SEARCH_ELASTICSEARCH_URIS:}
+  autoconfigure:
+    # search.enabled=false 时无需 ES；启用检索时删掉此项并配置 SEARCH_ELASTICSEARCH_URIS
+    exclude:
+      - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchClientAutoConfiguration
+      - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchRestClientAutoConfiguration
 
 jwt:
   expiration: 86400000
+
+acm:
+  upload:
+    avatar-dir: ./data/uploads/avatars
+    avatar-public-path: /uploads/avatars
+    avatar-max-bytes: 2097152
+  official:
+    username: acmer_official
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
@@ -75,6 +94,8 @@ notify:
   scan-batch-size: 200
   max-retries: 3
   send-interval-millis: 1000
+  retry:
+    base-delay-seconds: 30
   mq:
     enabled: true
     exchange: notify.exchange
@@ -86,9 +107,37 @@ notify:
     enabled: false
     from: ${MAIL_FROM:noreply@acmer.local}
 
+# 模块 10：OJ 竞技数据同步
+sync:
+  credential-key-base64: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+  schedule:
+    enabled: true
+    cron: "0 0 3 * * ?"
+
+# 模块 6：社交社区
+social:
+  feed:
+    cache-ttl-minutes: 5
+    hot-feed-size: 50
+
 # Jasypt 解密密钥：仅本机环境变量 JASYPT_ENCRYPTOR_PASSWORD，不要写进 yaml
 jasypt:
   encryptor:
     password: ${JASYPT_ENCRYPTOR_PASSWORD:}
     algorithm: PBEWithMD5AndDES
     iv-generator-classname: org.jasypt.iv.NoIvGenerator
+
+# 模块 7：组队匹配权重
+team:
+  match:
+    rating-weight: 0.4
+    region-weight: 0.3
+    tag-weight: 0.3
+    recommend-limit: 20
+
+# 模块 9：全文检索（默认关闭，启用时需本地 Elasticsearch）
+search:
+  enabled: false
+  index-name: acm_search
+  elasticsearch-uri: http://localhost:9200
+  default-page-size: 20

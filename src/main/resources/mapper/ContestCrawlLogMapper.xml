@@ -38,14 +38,34 @@
         )
     </insert>
 
-    <select id="selectRecentBySource" resultMap="CrawlLogResultMap">
+    <select id="selectPage" resultMap="CrawlLogResultMap">
         SELECT id, source, status, trigger_type, error_type, http_status, request_url,
                max_retries, total_attempts, fetched_count,
                inserted_count, updated_count, skipped_count, ignored_count,
                elapsed_ms, error_message, error_detail, created_time
         FROM contest_crawl_log
-        WHERE source = #{source}
+        <where>
+            <if test="source != null and source != ''">
+                AND source = #{source}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+        </where>
         ORDER BY created_time DESC
-        LIMIT #{limit}
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        FROM contest_crawl_log
+        <where>
+            <if test="source != null and source != ''">
+                AND source = #{source}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+        </where>
     </select>
 </mapper>

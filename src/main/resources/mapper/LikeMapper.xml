@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.social.mapper.LikeMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post_like (post_id, user_id)
+        VALUES (#{postId}, #{userId})
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM post_like WHERE post_id = #{postId} AND user_id = #{userId}
+    </delete>
+
+    <select id="exists" resultType="boolean">
+        SELECT COUNT(1) > 0 FROM post_like WHERE post_id = #{postId} AND user_id = #{userId}
+    </select>
+
+    <select id="selectLikedPostIds" resultType="long">
+        SELECT post_id
+        FROM post_like
+        WHERE user_id = #{userId}
+        <if test="postIds != null and postIds.size() > 0">
+            AND post_id IN
+            <foreach collection="postIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        <if test="postIds == null or postIds.size() == 0">
+            AND 1 = 0
+        </if>
+    </select>
+</mapper>

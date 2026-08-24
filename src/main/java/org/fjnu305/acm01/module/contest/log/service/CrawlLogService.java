@@ -3,7 +3,7 @@ package org.fjnu305.acm01.module.contest.log.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fjnu305.acm01.Common.enums.CrawlLogStatus;
-import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
+import org.fjnu305.acm01.Common.http.AppHttpProperties;
 import org.fjnu305.acm01.module.contest.crawl.mapper.ContestSourceMapper;
 import org.fjnu305.acm01.module.contest.log.dto.ContestPersistCountsDTO;
 import org.fjnu305.acm01.module.contest.log.dto.CrawlOutcome;
@@ -21,7 +21,7 @@ public class CrawlLogService {
 
     private final ContestCrawlLogMapper crawlLogMapper;
     private final ContestSourceMapper contestSourceMapper;
-    private final CrawlHttpProperties crawlHttpProperties;
+    private final AppHttpProperties appHttpProperties;
 
     public Long record(CrawlOutcome outcome) {
         ContestCrawlLogEntity entity = new ContestCrawlLogEntity();
@@ -29,7 +29,7 @@ public class CrawlLogService {
         entity.setTriggerType(outcome.getTriggerType().getValue());
         entity.setRequestUrl(outcome.getRequestUrl());
         entity.setElapsedMs(safeElapsed(outcome.getElapsedMs()));
-        entity.setMaxRetries(outcome.getMaxRetries() > 0 ? outcome.getMaxRetries() : crawlHttpProperties.getMaxRetries());
+        entity.setMaxRetries(outcome.getMaxRetries() > 0 ? outcome.getMaxRetries() : appHttpProperties.getMaxRetries());
         entity.setTotalAttempts(outcome.getTotalAttempts() > 0 ? outcome.getTotalAttempts() : 1);
 
         if (outcome.isSuccess()) {

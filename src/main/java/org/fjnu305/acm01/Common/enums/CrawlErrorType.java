@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum CrawlErrorType {
 
-    /** {@link org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient} 网络/HTTP 重试耗尽 */
+    /** {@link org.fjnu305.acm01.Common.http.AppHttpClient} 网络/HTTP 重试耗尽 */
     HTTP_ERROR("HTTP_ERROR"),
 
     API_ERROR("API_ERROR"),

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.team.mapper.TeamPostMapper">
+
+    <sql id="MemberCountJoin">
+        LEFT JOIN (
+            SELECT team_post_id, COUNT(1) AS accepted_count
+            FROM team_member
+            WHERE status = 1
+            GROUP BY team_post_id
+        ) mc ON mc.team_post_id = t.id
+    </sql>
+
+    <sql id="ComputedCurrentCount">
+        COALESCE(mc.accepted_count, 0) AS currentCount
+    </sql>
+
+    <sql id="ComputedStatus">
+        CASE
+            WHEN t.status = 0 THEN 0
+            WHEN COALESCE(mc.accepted_count, 0) >= t.member_limit THEN 2
+            ELSE 1
+        END AS status
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO team_post (user_id, title, description, rating_min, rating_max, region, tags,
+                               member_limit, status, deleted)
+        VALUES (#{userId}, #{title}, #{description}, #{ratingMin}, #{ratingMax}, #{region}, #{tags},
+                #{memberLimit}, #{status}, 0)
+    </insert>
+
+    <select id="selectById" resultType="org.fjnu305.acm01.module.team.entity.TeamPostEntity">
+        SELECT id, user_id, title, description, rating_min, rating_max, region, tags,
+               member_limit, status, created_time, updated_time, deleted
+        FROM team_post
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectDetail" resultType="org.fjnu305.acm01.module.team.vo.TeamPostDetailVO">
+        SELECT t.id,
+               t.user_id AS userId,
+               COALESCE(u.nickname, u.username) AS authorName,
+               t.title,
+               t.description,
+               t.rating_min AS ratingMin,
+               t.rating_max AS ratingMax,
+               t.region,
+               t.tags,
+               t.member_limit AS memberLimit,
+               <include refid="ComputedCurrentCount"/>,
+               <include refid="ComputedStatus"/>,
+               t.created_time AS createdTime
+        FROM team_post t
+                 INNER JOIN user u ON u.id = t.user_id AND u.deleted = 0
+                 <include refid="MemberCountJoin"/>
+        WHERE t.id = #{id} AND t.deleted = 0
+    </select>
+
+    <sql id="ListWhere">
+        FROM team_post t
+                 INNER JOIN user u ON u.id = t.user_id AND u.deleted = 0
+                 <include refid="MemberCountJoin"/>
+        WHERE t.deleted = 0
+        <if test="status != null">
+            AND (
+            CASE
+                WHEN t.status = 0 THEN 0
+                WHEN COALESCE(mc.accepted_count, 0) >= t.member_limit THEN 2
+                ELSE 1
+            END
+            ) = #{status}
+        </if>
+        <if test="region != null and region != ''">
+            AND t.region = #{region}
+        </if>
+    </sql>
+
+    <select id="selectPage" resultType="org.fjnu305.acm01.module.team.vo.TeamPostVO">
+        SELECT t.id,
+               t.user_id AS userId,
+               COALESCE(u.nickname, u.username) AS authorName,
+               t.title,
+               t.description,
+               t.rating_min AS ratingMin,
+               t.rating_max AS ratingMax,
+               t.region,
+               t.tags,
+               t.member_limit AS memberLimit,
+               <include refid="ComputedCurrentCount"/>,
+               <include refid="ComputedStatus"/>,
+               t.created_time AS createdTime
+        <include refid="ListWhere"/>
+        ORDER BY t.created_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(1)
+        <include refid="ListWhere"/>
+    </select>
+
+    <select id="selectMinePage" resultType="org.fjnu305.acm01.module.team.vo.TeamPostVO">
+        SELECT t.id,
+               t.user_id AS userId,
+               COALESCE(u.nickname, u.username) AS authorName,
+               t.title,
+               t.description,
+               t.rating_min AS ratingMin,
+               t.rating_max AS ratingMax,
+               t.region,
+               t.tags,
+               t.member_limit AS memberLimit,
+               <include refid="ComputedCurrentCount"/>,
+               <include refid="ComputedStatus"/>,
+               t.created_time AS createdTime
+        FROM team_post t
+                 INNER JOIN user u ON u.id = t.user_id AND u.deleted = 0
+                 <include refid="MemberCountJoin"/>
+        WHERE t.deleted = 0
+          AND (
+            t.user_id = #{userId}
+                OR EXISTS (SELECT 1
+                           FROM team_member m
+                           WHERE m.team_post_id = t.id
+                             AND m.user_id = #{userId}
+                             AND m.status = 1)
+            )
+        ORDER BY t.updated_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countMinePage" resultType="long">
+        SELECT COUNT(1)
+        FROM team_post t
+        WHERE t.deleted = 0
+          AND (
+            t.user_id = #{userId}
+                OR EXISTS (SELECT 1
+                           FROM team_member m
+                           WHERE m.team_post_id = t.id
+                             AND m.user_id = #{userId}
+                             AND m.status = 1)
+            )
+    </select>
+
+    <update id="updateRecruitmentStatus">
+        UPDATE team_post
+        SET status = #{status},
+            updated_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE team_post SET status = #{status}, updated_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="softDelete">
+        UPDATE team_post SET deleted = 1, status = 0, updated_time = NOW() WHERE id = #{id}
+    </update>
+
+    <select id="searchFallback" resultType="org.fjnu305.acm01.module.team.vo.TeamPostVO">
+        SELECT t.id,
+               t.user_id AS userId,
+               COALESCE(u.nickname, u.username) AS authorName,
+               t.title,
+               t.description,
+               t.rating_min AS ratingMin,
+               t.rating_max AS ratingMax,
+               t.region,
+               t.tags,
+               t.member_limit AS memberLimit,
+               <include refid="ComputedCurrentCount"/>,
+               <include refid="ComputedStatus"/>,
+               t.created_time AS createdTime
+        FROM team_post t
+                 INNER JOIN user u ON u.id = t.user_id AND u.deleted = 0
+                 <include refid="MemberCountJoin"/>
+        WHERE t.deleted = 0
+          AND (
+            CASE
+                WHEN t.status = 0 THEN 0
+                WHEN COALESCE(mc.accepted_count, 0) >= t.member_limit THEN 2
+                ELSE 1
+            END
+          ) = 1
+          AND (t.title LIKE CONCAT('%', #{keyword}, '%')
+            OR t.description LIKE CONCAT('%', #{keyword}, '%')
+            OR t.tags LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY t.created_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countSearchFallback" resultType="long">
+        SELECT COUNT(1)
+        FROM team_post t
+                 <include refid="MemberCountJoin"/>
+        WHERE t.deleted = 0
+          AND (
+            CASE
+                WHEN t.status = 0 THEN 0
+                WHEN COALESCE(mc.accepted_count, 0) >= t.member_limit THEN 2
+                ELSE 1
+            END
+          ) = 1
+          AND (t.title LIKE CONCAT('%', #{keyword}, '%')
+            OR t.description LIKE CONCAT('%', #{keyword}, '%')
+            OR t.tags LIKE CONCAT('%', #{keyword}, '%'))
+    </select>
+</mapper>

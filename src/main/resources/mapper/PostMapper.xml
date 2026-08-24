@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.social.mapper.PostMapper">
+
+    <resultMap id="PostEntityMap" type="org.fjnu305.acm01.module.social.entity.PostEntity">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="content" column="content"/>
+        <result property="topicId" column="topic_id"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="status" column="status"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="updatedTime" column="updated_time"/>
+    </resultMap>
+
+    <resultMap id="PostVoMap" type="org.fjnu305.acm01.module.social.vo.PostVO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="authorNickname" column="author_nickname"/>
+        <result property="authorAvatar" column="author_avatar"/>
+        <result property="content" column="content"/>
+        <result property="topicId" column="topic_id"/>
+        <result property="topicName" column="topic_name"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="likedByMe" column="liked_by_me"/>
+        <result property="createdTime" column="created_time"/>
+    </resultMap>
+
+    <sql id="PostVoSelect">
+        SELECT p.id, p.user_id, p.content, p.topic_id, p.like_count, p.comment_count, p.created_time,
+               u.nickname AS author_nickname, u.avatar AS author_avatar,
+               t.name AS topic_name,
+               CASE WHEN pl.id IS NOT NULL THEN 1 ELSE 0 END AS liked_by_me
+        FROM post p
+        INNER JOIN user u ON u.id = p.user_id AND u.deleted = 0
+        LEFT JOIN topic t ON t.id = p.topic_id
+        LEFT JOIN post_like pl ON pl.post_id = p.id AND pl.user_id = #{viewerId}
+        WHERE p.status = 1
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post (user_id, content, topic_id, like_count, comment_count, status)
+        VALUES (#{userId}, #{content}, #{topicId}, 0, 0, 1)
+    </insert>
+
+    <select id="selectById" resultMap="PostEntityMap">
+        SELECT id, user_id, content, topic_id, like_count, comment_count, status, created_time, updated_time
+        FROM post
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectVoById" resultMap="PostVoMap">
+        <include refid="PostVoSelect"/>
+        AND p.id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectHotFeed" resultMap="PostVoMap">
+        <include refid="PostVoSelect"/>
+        ORDER BY p.like_count DESC, p.created_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectPage" resultMap="PostVoMap">
+        <include refid="PostVoSelect"/>
+        ORDER BY p.created_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countActive" resultType="long">
+        SELECT COUNT(1) FROM post WHERE status = 1
+    </select>
+
+    <update id="markDeleted">
+        UPDATE post SET status = 0, updated_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="incrementLikeCount">
+        UPDATE post SET like_count = like_count + 1, updated_time = NOW() WHERE id = #{id} AND status = 1
+    </update>
+
+    <update id="decrementLikeCount">
+        UPDATE post SET like_count = GREATEST(like_count - 1, 0), updated_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="incrementCommentCount">
+        UPDATE post SET comment_count = comment_count + 1, updated_time = NOW() WHERE id = #{id} AND status = 1
+    </update>
+</mapper>

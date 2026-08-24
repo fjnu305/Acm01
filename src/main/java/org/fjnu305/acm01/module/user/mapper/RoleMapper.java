@@ -16,4 +16,8 @@ public interface RoleMapper {
     int insertUserRole(@Param("userId") Long userId, @Param("roleId") Long roleId);
 
     int countUsers();
+
+    int deleteUserRoles(@Param("userId") Long userId);
+
+    List<RoleEntity> selectAllActive();
 }

@@ -8,7 +8,7 @@ import org.fjnu305.acm01.module.contest.crawl.fetch.ContestFetchSupport;
 import org.fjnu305.acm01.module.contest.crawl.fetch.PlatformContestFetchService;
 import org.fjnu305.acm01.module.contest.crawl.exception.CrawlFetchException;
 import org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient;
-import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
+import org.fjnu305.acm01.Common.http.AppHttpProperties;
 import org.fjnu305.acm01.module.contest.crawl.service.ContestPersistService;
 import org.fjnu305.acm01.module.contest.dto.ContestDTO;
 import org.fjnu305.acm01.module.contest.log.dto.ContestPersistCountsDTO;
@@ -26,7 +26,7 @@ public class CrawlPipeline {
     private final ContestPersistService persistService;
     private final CrawlLogService logService;
     private final CrawlHttpClient httpClient;
-    private final CrawlHttpProperties httpProperties;
+    private final AppHttpProperties httpProperties;
     private final ContestFetchSupport fetchSupport;
 
     public Long execute(PlatformContestFetchService fetchService, CrawlTriggerType triggerType) {

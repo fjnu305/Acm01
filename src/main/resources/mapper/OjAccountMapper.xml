@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.sync.mapper.OjAccountMapper">
+
+    <resultMap id="OjAccountResultMap" type="org.fjnu305.acm01.module.sync.entity.OjAccountEntity">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="platform" column="platform"/>
+        <result property="handle" column="handle"/>
+        <result property="encryptedCredential" column="encrypted_credential"/>
+        <result property="credentialIv" column="credential_iv"/>
+        <result property="status" column="status"/>
+        <result property="lastSyncAt" column="last_sync_at"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="updatedTime" column="updated_time"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO oj_account (user_id, platform, handle, encrypted_credential, credential_iv, status)
+        VALUES (#{userId}, #{platform}, #{handle}, #{encryptedCredential}, #{credentialIv}, #{status})
+    </insert>
+
+    <update id="update">
+        UPDATE oj_account
+        SET handle = #{handle},
+            encrypted_credential = #{encryptedCredential},
+            credential_iv = #{credentialIv},
+            status = #{status},
+            updated_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectByUserAndPlatform" resultMap="OjAccountResultMap">
+        SELECT id, user_id, platform, handle, encrypted_credential, credential_iv,
+               status, last_sync_at, created_time, updated_time
+        FROM oj_account
+        WHERE user_id = #{userId} AND platform = #{platform}
+        LIMIT 1
+    </select>
+
+    <select id="selectByUserId" resultMap="OjAccountResultMap">
+        SELECT id, user_id, platform, handle, encrypted_credential, credential_iv,
+               status, last_sync_at, created_time, updated_time
+        FROM oj_account
+        WHERE user_id = #{userId} AND status = 1
+        ORDER BY platform
+    </select>
+
+    <select id="selectAllActive" resultMap="OjAccountResultMap">
+        SELECT id, user_id, platform, handle, encrypted_credential, credential_iv,
+               status, last_sync_at, created_time, updated_time
+        FROM oj_account
+        WHERE status = 1
+        ORDER BY id
+    </select>
+
+    <update id="updateLastSyncAt">
+        UPDATE oj_account
+        SET last_sync_at = #{lastSyncAt}, updated_time = NOW()
+        WHERE id = #{id}
+    </update>
+</mapper>

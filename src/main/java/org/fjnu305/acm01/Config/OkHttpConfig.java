@@ -2,27 +2,20 @@ package org.fjnu305.acm01.Config;
 
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
-import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
+import org.fjnu305.acm01.Common.http.AppHttpProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 
 /**
- * 爬虫模块 OkHttp 客户端配置?
- * <p>
- * 注册全局单例 {@link OkHttpClient} ?{@link ConnectionPool}?
- * ?{@link org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient} 注入复用?
- * </p>
+ * 全局 OkHttp 客户端：供 {@link org.fjnu305.acm01.Common.http.AppHttpClient} 注入复用。
  */
 @Configuration
 public class OkHttpConfig {
 
-    /**
-     * 爬虫专用连接?Bean?
-     */
     @Bean
-    public ConnectionPool crawlConnectionPool(CrawlHttpProperties properties) {
+    public ConnectionPool appConnectionPool(AppHttpProperties properties) {
         return new ConnectionPool(
                 properties.getMaxIdleConnections(),
                 properties.getKeepAliveMinutes(),
@@ -31,16 +24,13 @@ public class OkHttpConfig {
     }
 
     /**
-     * 爬虫专用 OkHttp 客户?Bean?
-     * <p>
-     * {@code retryOnConnectionFailure(true)} 仅处理连接层瞬断?
-     * 应用?HTTP 5xx / 429 重试?{@link org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient} 负责?
-     * </p>
+     * {@code retryOnConnectionFailure(true)} 仅处理连接层瞬断；
+     * 应用层 HTTP 5xx / 429 重试由 {@link org.fjnu305.acm01.Common.http.AppHttpClient} 负责。
      */
     @Bean
-    public OkHttpClient crawlOkHttpClient(CrawlHttpProperties properties, ConnectionPool crawlConnectionPool) {
+    public OkHttpClient okHttpClient(AppHttpProperties properties, ConnectionPool appConnectionPool) {
         return new OkHttpClient.Builder()
-                .connectionPool(crawlConnectionPool)
+                .connectionPool(appConnectionPool)
                 .connectTimeout(properties.getConnectTimeoutSeconds(), TimeUnit.SECONDS)
                 .readTimeout(properties.getReadTimeoutSeconds(), TimeUnit.SECONDS)
                 .writeTimeout(properties.getWriteTimeoutSeconds(), TimeUnit.SECONDS)

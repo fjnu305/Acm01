@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fjnu305.acm01.module.contest.crawl.exception.CrawlFetchException;
 import org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient;
-import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
+import org.fjnu305.acm01.Common.http.AppHttpProperties;
 import org.fjnu305.acm01.module.contest.crawl.fetch.nowcoder.NowcoderCrawlProperties;
 import org.fjnu305.acm01.module.contest.crawl.fetch.nowcoder.dto.NowcoderContestItem;
 import org.fjnu305.acm01.module.contest.crawl.fetch.nowcoder.dto.NowcoderContestJsonPayload;
@@ -26,7 +26,7 @@ import java.util.List;
 public class NowcoderHtmlClient {
 
     private final CrawlHttpClient crawlHttpClient;
-    private final CrawlHttpProperties crawlHttpProperties;
+    private final AppHttpProperties appHttpProperties;
     private final NowcoderCrawlProperties nowcoderCrawlProperties;
     private final ObjectMapper objectMapper;
 
@@ -40,7 +40,7 @@ public class NowcoderHtmlClient {
         } catch (Exception e) {
             throw CrawlFetchException.parseError(
                     url,
-                    crawlHttpProperties.getMaxRetries(),
+                    appHttpProperties.getMaxRetries(),
                     crawlHttpClient.getLastAttemptCount(),
                     "Nowcoder HTML parse failed: " + e.getMessage(),
                     e

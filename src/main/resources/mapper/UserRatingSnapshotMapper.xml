@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.fjnu305.acm01.module.sync.mapper.UserRatingSnapshotMapper">
+
+    <resultMap id="SnapshotResultMap" type="org.fjnu305.acm01.module.sync.entity.UserRatingSnapshotEntity">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="platform" column="platform"/>
+        <result property="rating" column="rating"/>
+        <result property="maxRating" column="max_rating"/>
+        <result property="rank" column="rank"/>
+        <result property="snapshotDate" column="snapshot_date"/>
+        <result property="createdTime" column="created_time"/>
+    </resultMap>
+
+    <insert id="upsert">
+        INSERT INTO user_rating_snapshot (user_id, platform, rating, max_rating, `rank`, snapshot_date)
+        VALUES (#{userId}, #{platform}, #{rating}, #{maxRating}, #{rank}, #{snapshotDate})
+        ON DUPLICATE KEY UPDATE
+            rating = VALUES(rating),
+            max_rating = VALUES(max_rating),
+            `rank` = VALUES(`rank`)
+    </insert>
+
+    <select id="selectByUserId" resultMap="SnapshotResultMap">
+        SELECT id, user_id, platform, rating, max_rating, `rank`, snapshot_date, created_time
+        FROM user_rating_snapshot
+        WHERE user_id = #{userId}
+        ORDER BY snapshot_date DESC, platform
+    </select>
+
+    <select id="selectRecentByUserAndPlatform" resultMap="SnapshotResultMap">
+        SELECT id, user_id, platform, rating, max_rating, `rank`, snapshot_date, created_time
+        FROM user_rating_snapshot
+        WHERE user_id = #{userId} AND platform = #{platform}
+        ORDER BY snapshot_date DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectLatestByUserAndPlatform" resultMap="SnapshotResultMap">
+        SELECT id, user_id, platform, rating, max_rating, `rank`, snapshot_date, created_time
+        FROM user_rating_snapshot
+        WHERE user_id = #{userId} AND platform = #{platform}
+        ORDER BY snapshot_date DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectByUserPlatformDate" resultMap="SnapshotResultMap">
+        SELECT id, user_id, platform, rating, max_rating, `rank`, snapshot_date, created_time
+        FROM user_rating_snapshot
+        WHERE user_id = #{userId} AND platform = #{platform} AND snapshot_date = #{snapshotDate}
+        LIMIT 1
+    </select>
+</mapper>

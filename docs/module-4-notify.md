@@ -1,7 +1,7 @@
 # 模块 4：消息通知 — 实施文档
 
 > 到点了给用户发邮件；内部分 **writeTask → discovery → delivery** 三块  
-> 文档版本：v2.0 | 状态：**MVP 已完成**
+> 文档版本：v2.1 | 状态：**MVP + A3 增强已完成**
 
 ---
 
@@ -88,7 +88,8 @@ org.fjnu305.acm01.module.notify/
 ├── delivery/                          # 块 C：执行任务（发信）
 │   ├── consumer/NotifyMqConsumer.java
 │   ├── service/NotifyDispatchService.java
-│   └── emailhandler/EmailNotifyHandler.java
+│   ├── emailhandler/EmailNotifyHandler.java
+│   └── websockethandler/WebSocketNotifyHandler.java
 │
 ├── config/                            # 共享配置
 │   ├── NotifyProperties.java
@@ -106,7 +107,7 @@ org.fjnu305.acm01.module.notify/
 
 | 文件 | 职责 | 输入 | 输出 / 副作用 |
 |------|------|------|----------------|
-| `NotifyTaskScheduler` | 对外接口；模块 3 唯一入口 | `schedule` / `cancelBySubscriptionId` | — |
+| `NotifyTaskScheduler` | 对外接口；模块 3 唯一入口 | `schedule` / `cancelBySubscriptionId` / `rescheduleByContestId` | — |
 | `NotifyScheduleCommand` | 传参 DTO | subscriptionId, userId, contestId, channel, remindMinutes, contestStartTime | — |
 | `NotifyTaskScheduleService` | 实现登记逻辑 | Command | `INSERT notify_task` 或 reactivate / cancel |
 
@@ -125,6 +126,17 @@ idempotent_key = userId:contestId:channel:remindMinutes
 ```text
 UPDATE notify_task SET status='CANCELLED'
 WHERE subscription_id=? AND status='PENDING'
+```
+
+**rescheduleByContestId()（A3 — 爬虫改期）：**
+
+```text
+触发：ContestPersistService.persistAll 检测到 start_time 变更
+1. selectActiveByContestId(contestId)
+2. 对每个 subscription 的 PENDING 任务：
+   newScheduledAt = newContestStartTime - remindBeforeMinutes
+   若 newScheduledAt <= now → cancelById
+   否则 → updateScheduledAt
 ```
 
 **测试定位：** 订阅后没有 `notify_task` → 先看 `scheduled_at` 是否已过期，再看 `NotifyTaskScheduleService`。
@@ -162,6 +174,7 @@ WHERE subscription_id=? AND status='PENDING'
 | `NotifyMqConsumer` | 从 MQ 收 `NotifyDeliveryMessage`，按 taskId 回查，调 dispatch | 队列堆积 → Consumer 是否启动 |
 | `NotifyDispatchService` | **执行总入口**：Redis 限流 → 校验状态 → 发信 → 更新任务 | 限流 / 重试 / markSent 在此 |
 | `EmailNotifyHandler` | 拼邮件 UTF-8、调 SMTP、写 `notify_log` | 乱码 / SMTP 失败看 `notify_log.error_message` |
+| `WebSocketNotifyHandler` | 在线用户 STOMP 推送、写 `notify_log` | 用户离线记 SKIPPED；见 [`module-5-websocket.md`](module-5-websocket.md) |
 
 **NotifyDispatchService.deliver() 流程：**
 
@@ -169,9 +182,9 @@ WHERE subscription_id=? AND status='PENDING'
 1. acquireRateLimit(userId)     # Redis key: notify:rate:{userId}，默认 60s
 2. processUserBatch(tasks)
    ├─ 刷新任务状态，只处理 PENDING / FAILED
-   ├─ emailNotifyHandler.sendMerged()   # 同用户多任务 → 一封邮件
-   ├─ 成功 → markSent（乐观锁 WHERE status IN (PENDING,FAILED)）
-   └─ 失败 → incrementRetry 或 markFailed（超 max-retries）
+   ├─ 按 channel 分组：EMAIL → sendMerged；WEBSOCKET → WebSocketNotifyHandler
+   ├─ 成功 → markSent（按渠道独立）
+   └─ 失败 → incrementRetryWithBackoff 或 markFailed（指数退避，超 max-retries）
 ```
 
 ---
@@ -256,6 +269,8 @@ notify:
   scan-batch-size: 200             # 每轮最多捞多少条到期任务
   max-retries: 3                   # 发信失败重试上限
   send-interval-millis: 1000       # discovery：用户批次之间的 sleep
+  retry:
+    base-delay-seconds: 30         # 失败重试指数退避基数（30s, 60s, 120s…）
   mq:
     enabled: true                  # true=RabbitMQ；false=本地直调 delivery
     exchange: notify.exchange
@@ -280,6 +295,8 @@ spring:
 
 ### 6.2 `application-local.yml`（不提交 Git）
 
+完整 SMTP 模板见 **`application-local.yml.example`**（含 host/port/username/ENC 密码）。
+
 ```yaml
 notify:
   email:
@@ -288,6 +305,8 @@ notify:
 
 spring:
   mail:
+    host: smtp.qq.com
+    port: 587
     username: 你的QQ号@qq.com
     password: ENC(...)
 ```
@@ -423,7 +442,7 @@ FROM notify_task WHERE id IN (<task_ids>);
 ```text
 PENDING ──发信成功──► SENT
    │
-   ├──发信失败且 retry < max──► PENDING（retry_count++）
+   ├──发信失败且 retry < max──► PENDING（retry_count++，scheduled_at 推迟退避）
    │
    ├──发信失败且 retry >= max──► FAILED
    │
@@ -441,7 +460,9 @@ PENDING ──发信成功──► SENT
 | 按 user 合并 | ScanJob 分组 + `sendMerged` 一封多段 |
 | MQ 默认开启 | 发现与执行解耦；可 `mq.enabled=false` 本地简化 |
 | 限流在 DispatchService | Redis `notify:rate:{userId}`，默认 60s |
-| 渠道固定 EMAIL | 无 IN_APP、`notification` 表 |
+| 渠道 | EMAIL + WEBSOCKET（订阅时双任务） |
+| 改期重算 | 爬虫 persist 后 `rescheduleByContestId` |
+| 失败重试 | 指数退避 `retry.base-delay-seconds` |
 | 幂等 | `idempotent_key` + `markSent` 乐观锁 |
 
 ---
@@ -451,8 +472,9 @@ PENDING ──发信成功──► SENT
 | 优先级 | 事项 |
 |--------|------|
 | P1 | 生产 SMTP 监控 |
-| P2 | `start_time` 变更后重算 `scheduled_at` |
-| P3 | 站内消息 / WebSocket 第二渠道 |
+| P2 | 社交动态 / 组队邀请推送（模块 6、7） |
+| ~~P2~~ | ~~`start_time` 变更后重算 `scheduled_at`~~ ✅ v2.1 |
+| ~~P3~~ | ~~站内消息 / WebSocket 第二渠道~~ ✅ 见 [`module-5-websocket.md`](module-5-websocket.md) |
 
 ---
 
@@ -462,4 +484,5 @@ PENDING ──发信成功──► SENT
 |------|------|
 | [`module-3-subscription.md`](module-3-subscription.md) | 订阅 API、边界调用方 |
 | [`database-schema.md`](database-schema.md) §4.3–4.4 | `notify_task`、`notify_log` |
+| [`module-5-websocket.md`](module-5-websocket.md) | WebSocket 推送、前端 STOMP |
 | [`architecture-modules.md`](architecture-modules.md) | 全站模块规划 |

@@ -6,7 +6,7 @@ import org.fjnu305.acm01.module.contest.crawl.fetch.atcoder.AtCoderCrawlProperti
 import org.fjnu305.acm01.module.contest.crawl.fetch.atcoder.dto.AtCoderContestItem;
 import org.fjnu305.acm01.module.contest.crawl.exception.CrawlFetchException;
 import org.fjnu305.acm01.module.contest.crawl.common.http.CrawlHttpClient;
-import org.fjnu305.acm01.module.contest.crawl.config.CrawlHttpProperties;
+import org.fjnu305.acm01.Common.http.AppHttpProperties;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -48,7 +48,7 @@ public class AtCoderHtmlClient {
     );
 
     private final CrawlHttpClient crawlHttpClient;
-    private final CrawlHttpProperties crawlHttpProperties;
+    private final AppHttpProperties appHttpProperties;
     private final AtCoderCrawlProperties atCoderCrawlProperties;
 
     public List<AtCoderContestItem> fetch() {
@@ -61,7 +61,7 @@ public class AtCoderHtmlClient {
         } catch (Exception e) {
             throw CrawlFetchException.parseError(
                     url,
-                    crawlHttpProperties.getMaxRetries(),
+                    appHttpProperties.getMaxRetries(),
                     crawlHttpClient.getLastAttemptCount(),
                     "AtCoder HTML parse failed: " + e.getMessage(),
                     e
