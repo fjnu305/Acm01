@@ -1,11 +1,14 @@
 package org.fjnu305.acm01.module.solution.service;
 
 import lombok.RequiredArgsConstructor;
+import org.fjnu305.acm01.Common.access.ContentAccessPolicy;
+import org.fjnu305.acm01.Common.access.Viewer;
 import org.fjnu305.acm01.Common.exception.BusinessException;
 import org.fjnu305.acm01.Common.exception.ErrorCode;
 import org.fjnu305.acm01.Common.result.PageResult;
 import org.fjnu305.acm01.Common.util.PageParams;
 import org.fjnu305.acm01.module.solution.mapper.SolutionMapper;
+import org.fjnu305.acm01.module.solution.mapper.SolutionTagMapper;
 import org.fjnu305.acm01.module.solution.mapper.SolutionTemplateMapper;
 import org.fjnu305.acm01.module.solution.vo.SolutionDetailVO;
 import org.fjnu305.acm01.module.solution.vo.SolutionTagVO;
@@ -29,6 +32,8 @@ public class SolutionQueryService {
 
     private final SolutionMapper solutionMapper;
     private final SolutionTemplateMapper solutionTemplateMapper;
+    private final SolutionTagMapper solutionTagMapper;
+    private final ContentAccessPolicy contentAccessPolicy;
 
     public PageResult<SolutionVO> list(String keyword, String tag, int pageNum, int pageSize) {
         PageParams page = PageParams.of(pageNum, pageSize);
@@ -45,8 +50,11 @@ public class SolutionQueryService {
         if (detail.getStatus() != null && detail.getStatus() == 2) {
             throw new BusinessException(ErrorCode.SOLUTION_TAKEDOWN);
         }
-        if (detail.getStatus() != null && detail.getStatus() != 1
-                && (viewerId == null || !detail.getUserId().equals(viewerId))) {
+        Viewer viewer = Viewer.current();
+        if (!viewer.authenticated() && viewerId != null) {
+            viewer = Viewer.user(viewerId);
+        }
+        if (!contentAccessPolicy.canRead("solution", id, viewer)) {
             throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
         }
         solutionMapper.incrementViewCount(id);
@@ -78,16 +86,15 @@ public class SolutionQueryService {
 
     private Map<String, Integer> aggregateTagCounts() {
         Map<String, Integer> counts = new LinkedHashMap<>();
-        for (String row : solutionMapper.selectAllTags()) {
-            if (row == null || row.isBlank()) {
+        List<SolutionTagVO> rows = solutionTagMapper.selectCounts();
+        if (rows == null || rows.isEmpty()) {
+            return counts;
+        }
+        for (SolutionTagVO row : rows) {
+            if (row.getName() == null || row.getName().isBlank() || row.getCount() == null) {
                 continue;
             }
-            for (String part : row.split("[,，]")) {
-                String tag = part.trim();
-                if (!tag.isEmpty()) {
-                    counts.merge(tag, 1, Integer::sum);
-                }
-            }
+            counts.put(row.getName(), row.getCount());
         }
         return counts;
     }

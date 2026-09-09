@@ -27,5 +27,9 @@ public interface ContestSubscriptionMapper {
 
     int cancel(@Param("id") Long id, @Param("userId") Long userId);
 
+    List<ContestSubscriptionEntity> selectActiveByContestId(@Param("contestId") Long contestId);
+
+    List<ContestSubscriptionEntity> selectByIds(@Param("ids") List<Long> ids);
+
     List<SubscriptionVO> selectMyActive(@Param("userId") Long userId);
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError } from '../api/auth'
 import { sourceLabel } from '../api/contest'
+import ContestPlatformLogo from '../components/contest/ContestPlatformLogo'
 import PageHeader from '../components/PageHeader'
 import {
   cancelSubscription,
@@ -99,9 +100,10 @@ export default function MySubscriptionsPage() {
                 <tr key={item.id}>
                   <td className="col-title">{item.contestTitle}</td>
                   <td>
-                    <span className={`source-pill source-${item.source}`}>
-                      {sourceLabel(item.source)}
-                    </span>
+                    <div className="contest-platform-cell">
+                      <ContestPlatformLogo source={item.source} size={24} variant="badge" />
+                      <span className="contest-platform-name">{sourceLabel(item.source)}</span>
+                    </div>
                   </td>
                   <td>{formatDateTime(item.contestStartTime)}</td>
                   <td>{remindLabel(item.remindBeforeMinutes)}</td>

@@ -1,0 +1,549 @@
+/* Publish editor — Luogu / GitHub / Medium style */
+
+.editor-page {
+  min-height: calc(100vh - 52px);
+  background: var(--bg-page);
+}
+
+.editor-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.editor-title-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 20px 0;
+}
+
+.editor-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.editor-back {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+}
+
+.editor-back:hover {
+  color: var(--acm-blue);
+}
+
+.editor-topbar-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.editor-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-btn-ghost {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.editor-btn-ghost:hover {
+  border-color: var(--acm-blue);
+  color: var(--acm-blue);
+}
+
+.editor-btn-publish {
+  padding: 8px 22px;
+  border: none;
+  border-radius: 8px;
+  background: var(--acm-blue);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.editor-btn-publish:hover:not(:disabled) {
+  background: #1e40af;
+}
+
+.editor-btn-publish:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.editor-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 20px 48px;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.editor-title-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-primary);
+  padding: 0 4px 12px;
+  letter-spacing: -0.02em;
+}
+
+.editor-title-input:focus {
+  outline: none;
+}
+
+.editor-title-input::placeholder {
+  color: #cbd5e1;
+}
+
+.editor-error {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.editor-main {
+  min-width: 0;
+}
+
+.editor-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 12px;
+}
+
+.editor-side-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.editor-side-card h3 {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.editor-side-hint {
+  margin: -6px 0 12px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.editor-field:last-child {
+  margin-bottom: 0;
+}
+
+.editor-field span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.editor-field input,
+.editor-field select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: var(--bg-subtle);
+}
+
+.editor-field input:focus,
+.editor-field select:focus {
+  outline: none;
+  border-color: var(--acm-blue);
+  background: #fff;
+}
+
+.editor-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.editor-tag-chip {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.editor-tag-chip:hover {
+  border-color: var(--acm-blue);
+  color: var(--acm-blue);
+}
+
+.editor-tag-chip.on {
+  background: var(--accent-light);
+  border-color: var(--acm-blue);
+  color: var(--acm-blue);
+  font-weight: 600;
+}
+
+.editor-tag-add {
+  display: flex;
+  gap: 6px;
+}
+
+.editor-tag-add input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.editor-tag-add button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.editor-tag-add button:hover {
+  background: var(--accent-light);
+  color: var(--acm-blue);
+}
+
+.editor-outline-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--acm-blue);
+  border-radius: 8px;
+  background: var(--accent-light);
+  color: var(--acm-blue);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.editor-outline-btn:hover {
+  background: #dbeafe;
+}
+
+.editor-template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-template-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  cursor: pointer;
+  text-align: left;
+}
+
+.editor-template-btn:hover {
+  border-color: var(--acm-blue);
+  background: var(--accent-light);
+}
+
+.editor-template-btn strong {
+  font-size: 0.85rem;
+}
+
+.editor-template-btn span {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.editor-side-tip ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── Markdown editor ── */
+.md-editor {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.md-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #fafbfc;
+  flex-wrap: wrap;
+}
+
+.md-editor-modes {
+  display: flex;
+  gap: 4px;
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.md-mode-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.md-mode-btn.active {
+  background: #fff;
+  color: var(--acm-blue);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.md-editor-tools {
+  display: flex;
+  gap: 4px;
+}
+
+.md-tool-btn {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.md-tool-btn:hover {
+  border-color: var(--acm-blue);
+  color: var(--acm-blue);
+  background: var(--accent-light);
+}
+
+.md-editor-body {
+  display: grid;
+  min-height: 420px;
+}
+
+.md-editor-body.mode-edit {
+  grid-template-columns: 1fr;
+}
+
+.md-editor-body.mode-preview {
+  grid-template-columns: 1fr;
+}
+
+.md-editor-body.mode-split {
+  grid-template-columns: 1fr 1fr;
+}
+
+.md-pane {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
+.md-pane-edit {
+  border-right: 1px solid var(--border);
+}
+
+.md-editor-body.mode-preview .md-pane-edit {
+  display: none;
+}
+
+.md-editor-body.mode-edit .md-pane-preview {
+  display: none;
+}
+
+.md-textarea {
+  flex: 1;
+  width: 100%;
+  border: none;
+  padding: 20px;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: #334155;
+  resize: vertical;
+  min-height: 400px;
+  background: #fff;
+}
+
+.md-textarea:focus {
+  outline: none;
+}
+
+.md-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.md-preview-label {
+  padding: 10px 16px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-light);
+  background: #fafbfc;
+}
+
+.md-preview-content {
+  flex: 1;
+  padding: 20px 24px;
+  overflow: auto;
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: #334155;
+}
+
+.md-preview-content h1 {
+  font-size: 1.5rem;
+  margin: 0 0 12px;
+}
+
+.md-preview-content h2 {
+  font-size: 1.2rem;
+  margin: 20px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.md-preview-content h3 {
+  font-size: 1.05rem;
+  margin: 16px 0 8px;
+}
+
+.md-preview-content p {
+  margin: 0 0 12px;
+}
+
+.md-preview-content ul {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.md-preview-content li {
+  margin-bottom: 4px;
+}
+
+.md-pre {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+.md-pre code {
+  white-space: pre;
+}
+
+.md-inline-code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.88em;
+  color: #be185d;
+}
+
+.md-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 960px) {
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-sidebar {
+    order: -1;
+    position: static;
+  }
+
+  .md-editor-body.mode-split {
+    grid-template-columns: 1fr;
+  }
+
+  .md-pane-edit {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 640px) {
+  .editor-topbar {
+    padding: 10px 14px;
+  }
+
+  .editor-title-input {
+    font-size: 1.35rem;
+  }
+
+  .md-editor-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

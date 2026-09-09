@@ -18,4 +18,6 @@ public interface ContestQueryMapper {
                    @Param("status") Integer status);
 
     ContestEntity selectById(@Param("id") Long id);
+
+    List<ContestEntity> selectByIds(@Param("ids") List<Long> ids);
 }

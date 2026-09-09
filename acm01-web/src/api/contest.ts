@@ -25,9 +25,34 @@ export interface ContestItem {
 
 export type ContestStatusFilter = '' | '1' | '2' | '3'
 
-export interface ContestListParams {
+export interface ContestDetail extends ContestItem {
+  description?: string
+  registerStart?: string
+  registerEnd?: string
+  lastCrawledAt?: string
+}
+
+export interface CrawlLogItem {
+  id: number
+  source: string
+  status: string
+  triggerType: string
+  errorType?: string
+  httpStatus?: number
+  requestUrl?: string
+  fetchedCount: number
+  insertedCount: number
+  updatedCount: number
+  skippedCount: number
+  ignoredCount?: number
+  elapsedMs?: number
+  errorMessage?: string
+  createdTime: string
+}
+
+export interface CrawlLogParams {
   source?: string
-  status?: ContestStatusFilter
+  status?: string
   pageNum?: number
   pageSize?: number
 }
@@ -43,10 +68,10 @@ export const CONTEST_SOURCES: ContestSourceOption[] = [
   { code: 'codeforces', label: 'Codeforces', short: 'CF', implemented: true },
   { code: 'atcoder', label: 'AtCoder', short: 'AT', implemented: true },
   { code: 'nowcoder', label: '牛客网', short: 'NC', implemented: true },
-  { code: 'luogu', label: '洛谷', short: 'LG', implemented: false },
-  { code: 'ccpc', label: 'CCPC', short: 'CC', implemented: false },
-  { code: 'icpc', label: 'ICPC', short: 'IC', implemented: false },
-  { code: 'lanqiao', label: '蓝桥杯', short: 'LQ', implemented: false },
+  { code: 'luogu', label: '洛谷', short: 'LG', implemented: true },
+  { code: 'ccpc', label: 'CCPC', short: 'CC', implemented: true },
+  { code: 'icpc', label: 'ICPC', short: 'IC', implemented: true },
+  { code: 'lanqiao', label: '蓝桥杯', short: 'LQ', implemented: true },
 ]
 
 async function publicRequest<T>(path: string): Promise<Result<T>> {
@@ -90,6 +115,27 @@ async function authRequest<T>(path: string, options: RequestInit = {}): Promise<
     throw new ApiError(result.code, result.message)
   }
   return result.data
+}
+
+export interface ContestListParams {
+  source?: string
+  status?: ContestStatusFilter
+  pageNum?: number
+  pageSize?: number
+}
+
+export async function fetchContestDetail(id: number): Promise<ContestDetail> {
+  const result = await publicRequest<ContestDetail>(`/api/contests/${id}`)
+  return result.data
+}
+
+export async function fetchCrawlLogs(params: CrawlLogParams = {}): Promise<PageResult<CrawlLogItem>> {
+  const query = new URLSearchParams()
+  if (params.source) query.set('source', params.source)
+  if (params.status) query.set('status', params.status)
+  query.set('pageNum', String(params.pageNum ?? 1))
+  query.set('pageSize', String(params.pageSize ?? 20))
+  return authRequest<PageResult<CrawlLogItem>>(`/api/admin/crawl/logs?${query.toString()}`)
 }
 
 /** 管理端手动触发爬虫，返回 contest_crawl_log.id；平台未启用时可能为 null */

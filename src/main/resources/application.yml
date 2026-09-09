@@ -10,21 +10,43 @@ spring:
       max-request-size: 2MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/acm?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true
-    username: root
-    password: 123456
+    url: ${DB_URL:jdbc:mysql://localhost:3306/acm?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 30000
   data:
     redis:
       host: localhost
       port: 6379
+      timeout: 3s
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
   quartz:
-    job-store-type: memory
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+      schema: classpath:db/quartz-mysql.sql
+    overwrite-existing-jobs: true
     auto-startup: true
+    properties:
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.clusterCheckinInterval: 15000
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
   mail:
     host: ${MAIL_HOST:smtp.qq.com}
     port: ${MAIL_PORT:587}
@@ -37,10 +59,11 @@ spring:
   elasticsearch:
     uris: ${SEARCH_ELASTICSEARCH_URIS:}
   autoconfigure:
-    # search.enabled=false 时无需 ES；启用检索时删掉此项并配置 SEARCH_ELASTICSEARCH_URIS
+    # 单机默认不连 ES / RabbitMQ；启用时从 exclude 去掉对应项并配 URI / NOTIFY_MQ_ENABLED
     exclude:
       - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchClientAutoConfiguration
       - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchRestClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
 
 jwt:
   expiration: 86400000
@@ -50,13 +73,30 @@ acm:
     avatar-dir: ./data/uploads/avatars
     avatar-public-path: /uploads/avatars
     avatar-max-bytes: 2097152
-  official:
+    official:
     username: acmer_official
+  web:
+    allowed-origins: ${ACM_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  rate-limit:
+    enabled: true
+    window-seconds: 60
+    anonymous-max-requests: 120
+    authenticated-max-requests: 300
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
 # 赛事爬虫 HTTP 配置（OkHttp 连接池与重试，各平台 Crawler 共用）
 contest:
@@ -64,6 +104,7 @@ contest:
     schedule:
       enabled: true
       cron: "0 */10 * * * ?"
+      lock-ttl-minutes: 20
     http:
       max-idle-connections: 5       # 连接池最大空闲连接数
       keep-alive-minutes: 5           # 空闲连接保活时间
@@ -92,27 +133,31 @@ notify:
   enabled: true
   scan-cron: "0 */1 * * * ?"
   scan-batch-size: 200
+  scan-lock-ttl-seconds: 50
+  stale-processing-seconds: 120
   max-retries: 3
   send-interval-millis: 1000
   retry:
     base-delay-seconds: 30
   mq:
-    enabled: true
+    # 单机默认进程内投递；有 RabbitMQ 再设 NOTIFY_MQ_ENABLED=true
+    enabled: ${NOTIFY_MQ_ENABLED:false}
     exchange: notify.exchange
     queue: notify.delivery.queue
     routing-key: notify.delivery
   rate-limit:
     user-min-interval-seconds: 60
   email:
-    enabled: false
+    enabled: ${NOTIFY_EMAIL_ENABLED:false}
     from: ${MAIL_FROM:noreply@acmer.local}
 
 # 模块 10：OJ 竞技数据同步
 sync:
-  credential-key-base64: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+  credential-key-base64: ${SYNC_CREDENTIAL_KEY_BASE64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
   schedule:
     enabled: true
     cron: "0 0 3 * * ?"
+    lock-ttl-minutes: 60
 
 # 模块 6：社交社区
 social:

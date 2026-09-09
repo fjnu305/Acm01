@@ -113,6 +113,7 @@ public class UserService {
                 .contestCount(user.getContestCount())
                 .roles(roles)
                 .ratingSnapshots(ojAccountService.listRatingSnapshots(user.getId()))
+                .cfRatingHistory(ojAccountService.listCfRatingHistory(user.getId()))
                 .build();
     }
 }

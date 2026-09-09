@@ -31,3 +31,5 @@ notify:
 acm:
   upload:
     avatar-dir: ./data/test-uploads/avatars
+  rate-limit:
+    enabled: false

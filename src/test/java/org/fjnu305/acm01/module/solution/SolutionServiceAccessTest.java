@@ -8,6 +8,7 @@ import org.fjnu305.acm01.module.solution.mapper.SolutionMapper;
 import org.fjnu305.acm01.module.solution.service.SolutionAccessGuard;
 import org.fjnu305.acm01.module.solution.service.SolutionCommandService;
 import org.fjnu305.acm01.module.solution.service.SolutionQueryService;
+import org.fjnu305.acm01.module.solution.service.SolutionTagIndexService;
 import org.fjnu305.acm01.module.user.mapper.UserMapper;
 import org.fjnu305.acm01.support.SecurityTestFixtures;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,9 @@ class SolutionServiceAccessTest {
 
     @Mock
     private SolutionQueryService queryService;
+
+    @Mock
+    private SolutionTagIndexService solutionTagIndexService;
 
     @InjectMocks
     private SolutionCommandService commandService;

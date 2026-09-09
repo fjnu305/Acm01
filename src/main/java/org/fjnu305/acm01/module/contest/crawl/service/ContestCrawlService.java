@@ -21,14 +21,16 @@ public class ContestCrawlService {
 
     public void crawlAll(CrawlTriggerType triggerType) {
         for (PlatformContestFetchService fetchService : fetchRegistry.all()) {
-            if (isCrawlEnabled(fetchService.getSource())) {
-                crawl(fetchService.getSource(), triggerType);
+            ContestSource source = fetchService.getSource();
+            if (!isCrawlEnabled(source)) {
+                continue;
+            }
+            try {
+                crawl(source, triggerType);
+            } catch (Exception e) {
+                log.error("[{}] crawl failed, continue remaining sources", source.getValue(), e);
             }
         }
-    }
-
-    public void crawlAll() {
-        crawlAll(CrawlTriggerType.AUTO);
     }
 
     public Long crawl(ContestSource source, CrawlTriggerType triggerType) {

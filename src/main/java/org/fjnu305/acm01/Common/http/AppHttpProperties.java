@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 /** Global HTTP client settings shared by crawl, AI, and other outbound calls. */
 @Data
 @Component
-@ConfigurationProperties(prefix = "acm.http")
+@ConfigurationProperties(prefix = "contest.crawl.http")
 public class AppHttpProperties {
 
     private int maxIdleConnections = 5;

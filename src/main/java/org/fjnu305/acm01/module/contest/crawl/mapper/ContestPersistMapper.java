@@ -18,6 +18,8 @@ public interface ContestPersistMapper {
 
     List<ContestEntity> selectRawHashByKeys(@Param("list") List<ContestEntity> list);
 
+    List<ContestEntity> selectSnapshotByKeys(@Param("list") List<ContestEntity> list);
+
     int batchInsert(@Param("list") List<ContestEntity> list);
 
     int batchUpdateBySourceAndExternalId(@Param("list") List<ContestEntity> list);

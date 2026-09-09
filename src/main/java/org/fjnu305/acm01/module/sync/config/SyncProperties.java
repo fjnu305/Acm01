@@ -18,5 +18,6 @@ public class SyncProperties {
     public static class Schedule {
         private boolean enabled = true;
         private String cron = "0 0 3 * * ?";
+        private int lockTtlMinutes = 60;
     }
 }

@@ -5,11 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.fjnu305.acm01.Common.enums.NotifyTaskStatus;
 import org.fjnu305.acm01.module.notify.config.NotifyProperties;
 import org.fjnu305.acm01.module.notify.delivery.emailhandler.EmailNotifyHandler;
+import org.fjnu305.acm01.module.notify.delivery.support.NotifyReminderLoader;
+import org.fjnu305.acm01.module.notify.delivery.websockethandler.WebSocketNotifyHandler;
 import org.fjnu305.acm01.module.notify.entity.NotifyTaskEntity;
 import org.fjnu305.acm01.module.notify.mapper.NotifyTaskMapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -24,6 +25,8 @@ public class NotifyDispatchService {
 
     private final NotifyTaskMapper notifyTaskMapper;
     private final EmailNotifyHandler emailNotifyHandler;
+    private final WebSocketNotifyHandler webSocketNotifyHandler;
+    private final NotifyReminderLoader reminderLoader;
     private final NotifyProperties properties;
     private final StringRedisTemplate stringRedisTemplate;
 
@@ -37,12 +40,9 @@ public class NotifyDispatchService {
         }
     }
 
-    @Transactional
-    public void processTask(NotifyTaskEntity task) {
-        processUserBatch(List.of(task));
-    }
-
-    @Transactional
+    /**
+     * Channel I/O stays outside a DB transaction. Status writes are per-row.
+     */
     public void processUserBatch(List<NotifyTaskEntity> tasks) {
         List<NotifyTaskEntity> actionable = new ArrayList<>();
         for (NotifyTaskEntity task : tasks) {
@@ -52,7 +52,8 @@ public class NotifyDispatchService {
             }
             String status = fresh.getStatus();
             if (NotifyTaskStatus.PENDING.getValue().equals(status)
-                    || NotifyTaskStatus.FAILED.getValue().equals(status)) {
+                    || NotifyTaskStatus.FAILED.getValue().equals(status)
+                    || NotifyTaskStatus.PROCESSING.getValue().equals(status)) {
                 actionable.add(fresh);
             }
         }
@@ -60,7 +61,7 @@ public class NotifyDispatchService {
             return;
         }
 
-        Long userId = emailNotifyHandler.resolveUserId(actionable.get(0));
+        Long userId = reminderLoader.resolveUserId(actionable.get(0));
         if (userId == null) {
             for (NotifyTaskEntity task : actionable) {
                 handleFailure(task, "Subscription or user not found");
@@ -71,9 +72,12 @@ public class NotifyDispatchService {
         boolean success;
         String error = null;
         try {
-            success = emailNotifyHandler.sendMerged(actionable);
+            success = webSocketNotifyHandler.sendMerged(actionable);
             if (!success) {
-                error = "Email delivery failed";
+                success = emailNotifyHandler.sendMerged(actionable);
+            }
+            if (!success) {
+                error = "No delivery channel succeeded";
             }
         } catch (Exception e) {
             log.error("Notify batch failed for user {}", userId, e);
@@ -112,10 +116,17 @@ public class NotifyDispatchService {
     private void handleFailure(NotifyTaskEntity task, String error) {
         int maxRetries = properties.getMaxRetries();
         if (task.getRetryCount() < maxRetries) {
-            notifyTaskMapper.incrementRetry(task.getId(), truncate(error));
+            int backoff = backoffSeconds(task.getRetryCount());
+            notifyTaskMapper.incrementRetryWithBackoff(task.getId(), truncate(error), backoff);
         } else {
-            notifyTaskMapper.markFailed(task.getId(), truncate(error));
+            notifyTaskMapper.markDead(task.getId(), truncate(error));
         }
+    }
+
+    private int backoffSeconds(int retryCount) {
+        int base = Math.max(1, properties.getRetry().getBaseDelaySeconds());
+        long delay = (long) base * (1L << Math.min(retryCount, 10));
+        return (int) Math.min(delay, 3600);
     }
 
     private static String truncate(String message) {

@@ -1,0 +1,121 @@
+/* Community section polish — per-board identity, no emoji icons */
+
+.comm-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.comm-section-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.comm-section-head p {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.comm-board-social .feed-channel-bar {
+  border-radius: 12px 12px 0 0;
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff 0%, #fff 100%);
+}
+
+.comm-board-solutions .sol-filter-bar {
+  border-radius: 12px 12px 0 0;
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #fef2f2 0%, #fff 100%);
+}
+
+.comm-board-teams .comm-filter-row {
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px 12px 0 0;
+  border-bottom: none;
+  background: linear-gradient(180deg, #ecfdf5 0%, #fff 100%);
+  border-color: #a7f3d0;
+}
+
+.comm-board-teams .team-grid {
+  margin-top: 0;
+  padding: 4px 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+}
+
+.comm-board-teams .team-grid .team-card {
+  margin: 0 12px 12px;
+  width: auto;
+}
+
+.comm-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.comm-stat svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.sol-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.sol-card-head h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.team-slot-check {
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.comm-tab[data-board='social'].active::after {
+  background: linear-gradient(90deg, var(--acm-red), var(--acm-blue));
+}
+
+.comm-tab[data-board='solutions'].active::after {
+  background: var(--acm-red);
+}
+
+.comm-tab[data-board='teams'].active::after {
+  background: #059669;
+}
+
+.side-widget h4 {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.side-widget-social {
+  border-top-color: var(--acm-blue);
+}
+
+.side-widget-solutions {
+  border-top-color: var(--acm-red);
+}
+
+.side-widget-teams {
+  border-top-color: #059669;
+}

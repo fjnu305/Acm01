@@ -21,6 +21,8 @@ public interface TeamMemberMapper {
 
     List<TeamMemberPreviewVO> selectAcceptedPreviewByTeamPostId(@Param("teamPostId") Long teamPostId);
 
+    List<TeamMemberPreviewVO> selectAcceptedPreviewByTeamPostIds(@Param("ids") List<Long> ids);
+
     List<Long> selectMemberUserIds(@Param("teamPostId") Long teamPostId);
 
     int countAcceptedByTeamPostId(@Param("teamPostId") Long teamPostId);

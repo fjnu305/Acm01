@@ -16,6 +16,7 @@ import java.util.Optional;
 public class ContestCacheService {
 
     private static final String LIST_KEY_PREFIX = "contest:list:";
+    private static final String VERSION_KEY = "contest:list:ver";
     private static final Duration LIST_TTL = Duration.ofMinutes(5);
 
     private final StringRedisTemplate stringRedisTemplate;
@@ -52,20 +53,28 @@ public class ContestCacheService {
 
     public void evictAllLists() {
         try {
-            var keys = stringRedisTemplate.keys(LIST_KEY_PREFIX + "*");
-            if (keys != null && !keys.isEmpty()) {
-                stringRedisTemplate.delete(keys);
-            }
+            stringRedisTemplate.opsForValue().increment(VERSION_KEY);
         } catch (Exception ignored) {
             // redis unavailable
         }
     }
 
-    private static String listKey(String source, Integer status, int pageNum, int pageSize) {
+    private String listKey(String source, Integer status, int pageNum, int pageSize) {
         return LIST_KEY_PREFIX
+                + cacheVersion()
+                + ":"
                 + (source != null ? source : "all")
                 + ":" + (status != null ? status : "all")
                 + ":" + pageNum
                 + ":" + pageSize;
+    }
+
+    private String cacheVersion() {
+        try {
+            String ver = stringRedisTemplate.opsForValue().get(VERSION_KEY);
+            return ver == null ? "0" : ver;
+        } catch (Exception e) {
+            return "0";
+        }
     }
 }

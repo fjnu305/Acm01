@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ApiError } from '../../api/auth'
 import { CONTEST_SOURCES, triggerContestCrawl } from '../../api/contest'
+import ContestPlatformLogo from '../../components/contest/ContestPlatformLogo'
 import PageHeader from '../../components/PageHeader'
 
 interface CrawlFeedback {
@@ -44,7 +45,7 @@ export default function AdminCrawlPage() {
         {CONTEST_SOURCES.map((source) => (
           <article key={source.code} className="platform-crawl-card">
             <div className="platform-crawl-top">
-              <span className={`source-badge source-${source.code}`}>{source.short}</span>
+              <ContestPlatformLogo source={source.code} size={40} variant="badge" title={source.label} />
               <div>
                 <h3>{source.label}</h3>
                 <p className="platform-crawl-code">{source.code}</p>

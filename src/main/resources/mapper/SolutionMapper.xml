@@ -169,8 +169,25 @@
         WHERE user_id = #{userId} AND status = 1 AND deleted = 0 AND tags IS NOT NULL AND tags != ''
     </select>
 
+    <select id="selectAggregatedTagsByUserIds" resultType="org.fjnu305.acm01.module.solution.dto.UserTagAggregate">
+        SELECT user_id AS userId, GROUP_CONCAT(DISTINCT tags SEPARATOR ',') AS tags
+        FROM solution
+        WHERE status = 1 AND deleted = 0 AND tags IS NOT NULL AND tags != ''
+          AND user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        GROUP BY user_id
+    </select>
+
     <select id="selectAllTags" resultType="string">
         SELECT tags
+        FROM solution
+        WHERE deleted = 0 AND status = 1 AND tags IS NOT NULL AND tags != ''
+    </select>
+
+    <select id="selectPublishedTagRows" resultType="org.fjnu305.acm01.module.solution.entity.SolutionEntity">
+        SELECT id, tags
         FROM solution
         WHERE deleted = 0 AND status = 1 AND tags IS NOT NULL AND tags != ''
     </select>

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ApiError } from '../api/auth'
+import ContestPlatformLogo from '../components/contest/ContestPlatformLogo'
 import {
   CONTEST_SOURCES,
   type ContestItem,
@@ -131,36 +133,36 @@ export default function ContestListPage({ mode = 'user', initialSource = '' }: C
             : '发现即将开始的比赛，订阅赛前邮件提醒'
         }
         actions={
-          activeSource ? (
-            <span className={`source-badge source-${activeSource.code}`}>{activeSource.short}</span>
-          ) : (
-            <span className="source-badge source-all">ALL</span>
-          )
+          <ContestPlatformLogo
+            source={activeSource?.code ?? 'all'}
+            size={36}
+            variant="badge"
+            title={activeSource?.label ?? '全部平台'}
+          />
         }
       />
 
-      <section className="filter-bar">
-        <div className="source-tabs">
+      <nav className="contest-source-tabs" aria-label="赛事平台">
+        <button
+          type="button"
+          className={`contest-source-tab ${sourceFilter === '' ? 'active' : ''}`}
+          onClick={() => handleSourceChange('')}
+        >
+          <ContestPlatformLogo source="all" size={22} />
+          全部平台
+        </button>
+        {CONTEST_SOURCES.map((source) => (
           <button
+            key={source.code}
             type="button"
-            className={`source-tab ${sourceFilter === '' ? 'active' : ''}`}
-            onClick={() => handleSourceChange('')}
+            className={`contest-source-tab ${sourceFilter === source.code ? 'active' : ''}`}
+            onClick={() => handleSourceChange(source.code)}
           >
-            全部平台
+            <ContestPlatformLogo source={source.code} size={22} title={source.label} />
+            {source.label}
           </button>
-          {CONTEST_SOURCES.map((source) => (
-            <button
-              key={source.code}
-              type="button"
-              className={`source-tab ${sourceFilter === source.code ? 'active' : ''}`}
-              onClick={() => handleSourceChange(source.code)}
-            >
-              {source.label}
-              {!source.implemented && <span className="stub-tag">开发中</span>}
-            </button>
-          ))}
-        </div>
-      </section>
+        ))}
+      </nav>
 
       <section className="filter-bar filter-bar-split">
         <div className="status-tabs">
@@ -199,72 +201,48 @@ export default function ContestListPage({ mode = 'user', initialSource = '' }: C
           </p>
         </div>
       ) : (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                {!sourceFilter && <th>平台</th>}
-                <th>赛事名称</th>
-                <th>开始时间</th>
-                <th>结束时间</th>
-                <th>难度</th>
-                <th>类型</th>
-                <th>状态</th>
-                <th>链接</th>
-                {!isAdmin && <th>操作</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {contests.map((contest) => (
-                <tr key={contest.id}>
-                  {!sourceFilter && (
-                    <td>
-                      <span className={`source-pill source-${contest.source}`}>
-                        {sourceLabel(contest.source)}
-                      </span>
-                    </td>
-                  )}
-                  <td className="col-title">
-                    <span className="contest-id">#{contest.externalId}</span>
-                    {contest.title}
-                  </td>
-                  <td>{formatDateTime(contest.startTime)}</td>
-                  <td>{formatDateTime(contest.endTime)}</td>
-                  <td>{contest.difficulty ?? '—'}</td>
-                  <td>{contest.contestType ?? '—'}</td>
-                  <td>
-                    <span className={`status-pill ${statusClass(contest.status)}`}>
-                      {formatContestStatus(contest.status)}
-                    </span>
-                  </td>
-                  <td>
-                    {contest.url ? (
-                      <a href={contest.url} target="_blank" rel="noreferrer" className="text-link">
-                        打开
-                      </a>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  {!isAdmin && (
-                    <td>
-                      {contest.status === 1 ? (
-                        <button
-                          type="button"
-                          className="btn-outline btn-sm"
-                          onClick={() => openSubscribe(contest)}
-                        >
-                          订阅
-                        </button>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="contest-list-panel">
+          {contests.map((contest) => (
+            <article key={contest.id} className="contest-list-card">
+              <ContestPlatformLogo
+                source={contest.source}
+                size={40}
+                variant="badge"
+                title={sourceLabel(contest.source)}
+              />
+              <div className="contest-list-body">
+                <h3 className="contest-list-title">
+                  <span className="contest-id">#{contest.externalId}</span>
+                  <Link to={`/contests/${contest.id}`}>{contest.title}</Link>
+                </h3>
+                <div className="contest-list-meta">
+                  <span>{formatDateTime(contest.startTime)}</span>
+                  {contest.endTime && <span>至 {formatDateTime(contest.endTime)}</span>}
+                  {contest.difficulty && <span>{contest.difficulty}</span>}
+                  {contest.contestType && <span>{contest.contestType}</span>}
+                  <span className={`status-pill ${statusClass(contest.status)}`}>
+                    {formatContestStatus(contest.status)}
+                  </span>
+                </div>
+              </div>
+              <div className="contest-list-actions">
+                {contest.url && (
+                  <a href={contest.url} target="_blank" rel="noreferrer" className="btn-outline btn-sm">
+                    官网
+                  </a>
+                )}
+                {!isAdmin && contest.status === 1 && (
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm"
+                    onClick={() => openSubscribe(contest)}
+                  >
+                    订阅
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
         </div>
       )}
 
@@ -295,7 +273,15 @@ export default function ContestListPage({ mode = 'user', initialSource = '' }: C
       {subscribeTarget && (
         <div className="modal-overlay" onClick={closeSubscribe}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h2>订阅提醒</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <ContestPlatformLogo source={subscribeTarget.source} size={36} variant="badge" />
+              <div>
+                <h2 style={{ margin: 0 }}>订阅提醒</h2>
+                <p className="modal-meta" style={{ margin: '4px 0 0' }}>
+                  {sourceLabel(subscribeTarget.source)}
+                </p>
+              </div>
+            </div>
             <p className="modal-subtitle">{subscribeTarget.title}</p>
             <p className="modal-meta">
               开始：{formatDateTime(subscribeTarget.startTime)} · 将通过邮件提醒

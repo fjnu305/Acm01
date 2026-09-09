@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError, isAdmin, login } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
+import AcmBalloonLogo from '../components/AcmBalloonLogo'
 
 export default function LoginPage() {
   const { setUser } = useAuth()
@@ -39,80 +40,68 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-page">
-      <section className="login-brand">
-        <div className="brand-inner">
-          <div className="logo-mark">&lt;/&gt;</div>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <AcmBalloonLogo size={56} />
           <h1>ACMer</h1>
-          <p className="brand-tagline">算法竞赛爱好者的一站式平台</p>
-          <ul className="brand-features">
-            <li>全网赛事聚合 · 赛程订阅提醒</li>
-            <li>选手社交互动 · 组队训练匹配</li>
-            <li>题解分享 · 竞技数据同步</li>
-          </ul>
+          <p>算法竞赛聚合平台</p>
         </div>
-        <div className="brand-glow" aria-hidden />
-      </section>
 
-      <section className="login-panel">
-        <div className="login-card">
-          <header className="login-header">
-            <h2>欢迎回来</h2>
-            <p>登录你的账号，继续竞赛之旅</p>
-          </header>
+        <h2>登录</h2>
+        <p className="auth-subtitle">登录账号，订阅赛事提醒</p>
 
-          <form className="login-form" onSubmit={handleSubmit}>
-            {error && <div className="login-error">{error}</div>}
+        <form className="login-form" onSubmit={handleSubmit}>
+          {error && <div className="login-error">{error}</div>}
 
-            <label className="form-item">
-              <span>用户名</span>
+          <label className="form-item">
+            <span>用户名</span>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="请输入用户名"
+              autoComplete="username"
+              disabled={loading}
+            />
+          </label>
+
+          <label className="form-item">
+            <span>密码</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="请输入密码"
+              autoComplete="current-password"
+              disabled={loading}
+            />
+          </label>
+
+          <div className="form-row">
+            <label className="checkbox">
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="请输入用户名"
-                autoComplete="username"
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
                 disabled={loading}
               />
+              <span>记住我</span>
             </label>
+          </div>
 
-            <label className="form-item">
-              <span>密码</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="请输入密码"
-                autoComplete="current-password"
-                disabled={loading}
-              />
-            </label>
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? '登录中…' : '登 录'}
+          </button>
+        </form>
 
-            <div className="form-row">
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  disabled={loading}
-                />
-                <span>记住我</span>
-              </label>
-            </div>
-
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? '登录中…' : '登 录'}
-            </button>
-          </form>
-
-          <p className="login-footer">
-            还没有账号？
-            <Link to="/register" className="text-link-btn">
-              立即注册
-            </Link>
-          </p>
-        </div>
-      </section>
+        <p className="login-footer">
+          还没有账号？
+          <Link to="/register" className="text-link-btn">
+            立即注册
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

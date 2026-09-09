@@ -14,7 +14,7 @@ import java.util.List;
  */
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "notify.mq", name = "enabled", havingValue = "false")
+@ConditionalOnProperty(prefix = "notify.mq", name = "enabled", havingValue = "false", matchIfMissing = true)
 public class LocalNotifyDeliveryPublisher implements NotifyDeliveryPublisher {
 
     private final NotifyDispatchService notifyDispatchService;

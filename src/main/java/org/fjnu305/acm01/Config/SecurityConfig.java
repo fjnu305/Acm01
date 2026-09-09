@@ -36,7 +36,13 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/contests/**", "/uploads/**", "/ws/**", "/error").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/contests/**", "/uploads/**", "/ws/**", "/error",
+                                "/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/solutions/favorites",
+                                "/api/teams/mine",
+                                "/api/teams/*/recommend",
+                                "/api/teams/*/invitable-friends").authenticated()
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/solutions/**", "/api/teams/**", "/api/search", "/api/users/*/profile").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

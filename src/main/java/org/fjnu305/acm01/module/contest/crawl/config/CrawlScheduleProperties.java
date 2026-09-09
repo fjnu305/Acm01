@@ -21,4 +21,9 @@ public class CrawlScheduleProperties {
      * Quartz cron 表达式，默认每 10 分钟（联调用）；上线可改为更长间隔。
      */
     private String cron = "0 */10 * * * ?";
+
+    /**
+     * Redis lock TTL covering one full crawl of all platforms.
+     */
+    private int lockTtlMinutes = 20;
 }

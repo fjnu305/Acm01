@@ -45,6 +45,15 @@
         WHERE id = #{id} AND user_id = #{userId} AND status = 1
     </update>
 
+    <select id="selectByIds" resultType="org.fjnu305.acm01.module.subscription.entity.ContestSubscriptionEntity">
+        SELECT id, user_id, contest_id, remind_before_minutes, channel, status, created_time, updated_time
+        FROM contest_subscription
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
     <select id="selectActiveByContestId" resultType="org.fjnu305.acm01.module.subscription.entity.ContestSubscriptionEntity">
         SELECT id, user_id, contest_id, remind_before_minutes, channel, status, created_time, updated_time
         FROM contest_subscription

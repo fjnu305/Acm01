@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import PageHeader from '../../components/PageHeader'
+import CfRatingChart from '../../components/CfRatingChart'
 
 export default function UserDashboardPage() {
   const { user } = useAuth()
@@ -9,10 +9,26 @@ export default function UserDashboardPage() {
 
   return (
     <div className="page-content">
-      <PageHeader
-        title={`你好，${displayName}`}
-        description="订阅即将开始的比赛，赛前通过邮件收到提醒。"
-      />
+      <section className="dash-banner">
+        <div className="dash-banner-left">
+          <h2>你好，{displayName}</h2>
+          <p>订阅即将开始的比赛，赛前通过邮件收到提醒</p>
+        </div>
+        <div className="dash-stats-inline">
+          <div className="dash-stat-item">
+            <span>CF Rating</span>
+            <strong>{user?.cfRating ?? 0}</strong>
+          </div>
+          <div className="dash-stat-item">
+            <span>刷题数</span>
+            <strong>{user?.solvedCount ?? 0}</strong>
+          </div>
+          <div className="dash-stat-item">
+            <span>参赛场次</span>
+            <strong>{user?.contestCount ?? 0}</strong>
+          </div>
+        </div>
+      </section>
 
       {!hasEmail && (
         <div className="alert alert-warn">
@@ -23,54 +39,41 @@ export default function UserDashboardPage() {
         </div>
       )}
 
-      <section className="stat-grid user-stat-grid">
-        <article className="stat-card">
-          <span className="stat-label">邮箱</span>
-          <strong className="stat-value stat-value-sm">{user?.email || '未填写'}</strong>
-        </article>
-        <article className="stat-card">
-          <span className="stat-label">CF Rating</span>
-          <strong className="stat-value">{user?.cfRating ?? 0}</strong>
-        </article>
-        <article className="stat-card">
-          <span className="stat-label">刷题数</span>
-          <strong className="stat-value">{user?.solvedCount ?? 0}</strong>
-        </article>
-        <article className="stat-card">
-          <span className="stat-label">参赛场次</span>
-          <strong className="stat-value">{user?.contestCount ?? 0}</strong>
-        </article>
-      </section>
+      {(user?.cfHandle || (user?.cfRatingHistory?.length ?? 0) > 0) && (
+        <CfRatingChart
+          compact
+          handle={user?.cfHandle}
+          currentRating={user?.cfRating}
+          history={user?.cfRatingHistory ?? []}
+        />
+      )}
 
       <section className="user-hero-grid">
         <Link to="/contests" className="hero-card hero-card-primary">
-          <span className="hero-eyebrow">赛事聚合</span>
           <h2>浏览比赛</h2>
-          <p>查看各平台即将开始、进行中和已结束的赛事，一键订阅邮件提醒。</p>
-          <span className="hero-cta">进入赛事列表 →</span>
+          <p>Codeforces、AtCoder、洛谷等 7 个平台的赛事聚合，支持赛前邮件提醒订阅。</p>
+          <span className="hero-cta">进入比赛列表 →</span>
         </Link>
 
         <Link to="/subscriptions" className="hero-card">
-          <span className="hero-eyebrow">订阅管理</span>
           <h2>我的订阅</h2>
-          <p>管理已订阅的赛前提醒，支持 24 小时与 1 小时两档提醒。</p>
+          <p>管理已订阅的赛前提醒，支持赛前 24 小时与 1 小时两档通知。</p>
           <span className="hero-cta">查看订阅 →</span>
         </Link>
 
-        <article className="hero-card hero-card-muted">
-          <span className="hero-eyebrow">社区</span>
-          <h2>动态广场</h2>
-          <p>刷题日常、竞赛心得与选手互动。</p>
-          <span className="badge-soon">即将上线</span>
-        </article>
+        <Link to="/social" className="hero-card hero-card-primary">
+          <h2>讨论 · 题解 · 组队</h2>
+          <p>发布动态、分享题解、招募队友，顶栏搜索可检索题解与组队帖。</p>
+          <span className="hero-cta">进入社区 →</span>
+        </Link>
       </section>
 
       <section className="info-panel">
         <h3>如何订阅提醒</h3>
         <ol className="steps-list">
-          <li>在「赛事」页筛选「即将开始」</li>
+          <li>在「比赛」页筛选「即将开始」</li>
           <li>点击比赛行的「订阅」，选择 24 小时 / 1 小时提醒</li>
-          <li>在「我的订阅」查看与管理已添加的提醒</li>
+          <li>在「订阅」页查看与管理已添加的提醒</li>
         </ol>
       </section>
     </div>

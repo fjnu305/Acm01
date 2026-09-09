@@ -5,6 +5,13 @@
 *.iml
 /data/
 
-# Ç°¶Ë acm01-web
+# ?? acm01-web
 /acm01-web/node_modules/
 /acm01-web/dist/
+
+# Wiki AI sidecar
+/wiki-ai/.venv/
+/wiki-ai/.env
+/wiki-ai/__pycache__/
+/wiki-ai/data/
+/wiki-ai/.pytest_cache/

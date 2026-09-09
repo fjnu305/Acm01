@@ -24,6 +24,7 @@ public class SolutionCommandService {
     private final SearchDocumentFactory searchDocumentFactory;
     private final SolutionAccessGuard solutionAccessGuard;
     private final SolutionQueryService queryService;
+    private final SolutionTagIndexService solutionTagIndexService;
 
     @Transactional
     public SolutionDetailVO create(Long userId, SolutionCreateRequest request) {
@@ -37,6 +38,7 @@ public class SolutionCommandService {
         entity.setStatus(request.getStatus() == null ? 1 : request.getStatus());
         solutionMapper.insert(entity);
         syncSearch(entity);
+        solutionTagIndexService.replace(entity.getId(), entity.getTags(), isPublished(entity.getStatus()));
         return queryService.getDetail(entity.getId(), userId);
     }
 
@@ -54,6 +56,7 @@ public class SolutionCommandService {
             throw new BusinessException(ErrorCode.SOLUTION_FORBIDDEN);
         }
         syncSearch(existing);
+        solutionTagIndexService.replace(existing.getId(), existing.getTags(), isPublished(existing.getStatus()));
         return queryService.getDetail(id, userId);
     }
 
@@ -65,6 +68,7 @@ public class SolutionCommandService {
             throw new BusinessException(ErrorCode.SOLUTION_FORBIDDEN);
         }
         searchDocumentFactory.deleteSolution(id);
+        solutionTagIndexService.remove(id);
     }
 
     @Transactional
@@ -75,6 +79,7 @@ public class SolutionCommandService {
         }
         solutionMapper.takedown(id);
         searchDocumentFactory.deleteSolution(id);
+        solutionTagIndexService.remove(id);
     }
 
     private void syncSearch(SolutionEntity entity) {
@@ -82,6 +87,10 @@ public class SolutionCommandService {
         String authorName = author == null ? ""
                 : (author.getNickname() != null ? author.getNickname() : author.getUsername());
         searchDocumentFactory.indexSolution(entity, authorName);
+    }
+
+    private static boolean isPublished(Integer status) {
+        return status != null && status == 1;
     }
 
     private String normalizeTags(String tags) {

@@ -2,14 +2,19 @@ package org.fjnu305.acm01.module.search.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.fjnu305.acm01.Common.access.ContentAccessPolicy;
+import org.fjnu305.acm01.Common.access.Viewer;
 import org.fjnu305.acm01.module.search.config.SearchProperties;
 import org.fjnu305.acm01.module.search.support.SearchHitSupport;
+import org.fjnu305.acm01.module.search.vo.SearchHitVO;
 import org.fjnu305.acm01.module.search.vo.SearchResultVO;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -19,8 +24,13 @@ public class SearchQueryService {
     private final SearchProperties searchProperties;
     private final ObjectProvider<ElasticsearchSearchBackend> elasticsearchBackendProvider;
     private final MysqlSearchBackend mysqlSearchBackend;
+    private final ContentAccessPolicy contentAccessPolicy;
 
     public SearchResultVO search(String query, String type, int pageNum, int pageSize) {
+        return search(query, type, pageNum, pageSize, Viewer.current());
+    }
+
+    public SearchResultVO search(String query, String type, int pageNum, int pageSize, Viewer viewer) {
         String q = query == null ? "" : query.trim();
         String normalizedType = SearchHitSupport.normalizeType(type);
         int page = Math.max(pageNum, 1);
@@ -42,12 +52,31 @@ public class SearchQueryService {
             ElasticsearchSearchBackend es = elasticsearchBackendProvider.getIfAvailable();
             if (es != null) {
                 try {
-                    return es.search(q, normalizedType, page, size, result);
+                    return applyVisibility(es.search(q, normalizedType, page, size, result), viewer);
                 } catch (Exception e) {
                     log.warn("Elasticsearch search failed, fallback to MySQL: {}", e.getMessage());
                 }
             }
         }
-        return mysqlSearchBackend.search(q, normalizedType, page, size, result);
+        return applyVisibility(mysqlSearchBackend.search(q, normalizedType, page, size, result), viewer);
+    }
+
+    private SearchResultVO applyVisibility(SearchResultVO result, Viewer viewer) {
+        List<SearchHitVO> source = result.getHits() == null ? List.of() : result.getHits();
+        List<SearchHitVO> visible = new ArrayList<>();
+        int hidden = 0;
+        for (SearchHitVO hit : source) {
+            if (contentAccessPolicy.canRead(hit.getType(), hit.getRefId(), viewer)) {
+                visible.add(hit);
+            } else {
+                hidden++;
+            }
+        }
+        result.setHits(visible);
+        long total = result.getTotal();
+        if (hidden > 0 && total >= hidden) {
+            result.setTotal(total - hidden);
+        }
+        return result;
     }
 }

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.fjnu305.acm01.module.friend.service.FriendService;
 import org.fjnu305.acm01.module.friend.service.OfficialUserService;
 import org.fjnu305.acm01.module.social.service.FollowService;
+import org.fjnu305.acm01.module.sync.service.OjAccountService;
 import org.fjnu305.acm01.module.user.dto.PublicProfileVO;
 import org.fjnu305.acm01.module.user.dto.UserSearchVO;
 import org.fjnu305.acm01.module.user.entity.UserEntity;
@@ -23,6 +24,7 @@ public class UserProfileService {
     private final OfficialUserService officialUserService;
     private final FollowService followService;
     private final UserMapper userMapper;
+    private final OjAccountService ojAccountService;
 
     public PublicProfileVO getPublicProfile(Long targetUserId, Long viewerId) {
         UserEntity user = userService.requirePublicUser(targetUserId);
@@ -41,6 +43,7 @@ public class UserProfileService {
                 .friendStatus(isSelf ? null : friendService.resolveFriendStatus(viewerId, targetUserId))
                 .official(officialUserService.isOfficialUser(targetUserId))
                 .following(viewerId != null && !isSelf && followService.isFollowing(viewerId, targetUserId))
+                .cfRatingHistory(ojAccountService.listCfRatingHistory(targetUserId))
                 .build();
     }
 

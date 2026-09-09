@@ -1,6 +1,7 @@
 package org.fjnu305.acm01.module.team.service;
 
 import lombok.RequiredArgsConstructor;
+import org.fjnu305.acm01.module.solution.dto.UserTagAggregate;
 import org.fjnu305.acm01.module.solution.mapper.SolutionMapper;
 import org.fjnu305.acm01.module.team.config.TeamMatchProperties;
 import org.fjnu305.acm01.module.team.entity.MatchRecordEntity;
@@ -18,9 +19,11 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,12 +46,13 @@ public class TeamMatchService {
         List<UserEntity> candidates = teamCandidateMapper.selectCandidates(excludeIds, ratingMin, ratingMax, limit);
         Set<String> teamTags = parseTags(post.getTags());
         int targetRating = (ratingMin + ratingMax) / 2;
+        Map<Long, String> tagsByUser = loadCandidateTags(candidates);
 
         List<TeamRecommendVO> scored = new ArrayList<>();
         for (UserEntity user : candidates) {
             double ratingScore = ratingScore(user.getCfRating() == null ? 0 : user.getCfRating(), targetRating, ratingMax - ratingMin);
             double regionScore = regionScore(post.getRegion(), user.getSchool());
-            double tagScore = tagScore(teamTags, parseTags(solutionMapper.selectAggregatedTagsByUserId(user.getId())));
+            double tagScore = tagScore(teamTags, parseTags(tagsByUser.get(user.getId())));
             double total = teamMatchProperties.getRatingWeight() * ratingScore
                     + teamMatchProperties.getRegionWeight() * regionScore
                     + teamMatchProperties.getTagWeight() * tagScore;
@@ -71,6 +75,18 @@ public class TeamMatchService {
 
         persistMatchRecords(post.getId(), top);
         return top;
+    }
+
+    private Map<Long, String> loadCandidateTags(List<UserEntity> candidates) {
+        if (candidates.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> userIds = candidates.stream().map(UserEntity::getId).toList();
+        Map<Long, String> tagsByUser = new HashMap<>();
+        for (UserTagAggregate row : solutionMapper.selectAggregatedTagsByUserIds(userIds)) {
+            tagsByUser.put(row.getUserId(), row.getTags());
+        }
+        return tagsByUser;
     }
 
     private void persistMatchRecords(Long teamPostId, List<TeamRecommendVO> recommendations) {

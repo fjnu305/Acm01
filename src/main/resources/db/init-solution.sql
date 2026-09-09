@@ -38,6 +38,13 @@ CREATE TABLE IF NOT EXISTS `solution_template` (
     INDEX `idx_category` (`category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='算法模板库';
 
+CREATE TABLE IF NOT EXISTS `solution_tag` (
+    `solution_id` BIGINT NOT NULL COMMENT '题解ID',
+    `tag` VARCHAR(64) NOT NULL COMMENT '标签',
+    PRIMARY KEY (`solution_id`, `tag`),
+    INDEX `idx_tag` (`tag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='题解标签倒排（热词统计）';
+
 INSERT IGNORE INTO solution_template (id, name, category, content, created_by) VALUES
 (1, '二分答案模板', '二分', 'bool check(int x) {\n    // TODO\n    return true;\n}\n\nint lo = 0, hi = 1e9;\nwhile (lo < hi) {\n    int mid = lo + (hi - lo) / 2;\n    if (check(mid)) hi = mid;\n    else lo = mid + 1;\n}', NULL),
 (2, 'Dijkstra 最短路', '图论', 'priority_queue<pair<int,int>, vector<pair<int,int>>, greater<>> pq;\nvector<int> dist(n, INF);\ndist[s] = 0;\npq.push({0, s});\nwhile (!pq.empty()) {\n    auto [d, u] = pq.top(); pq.pop();\n    if (d > dist[u]) continue;\n    for (auto [v, w] : g[u]) {\n        if (dist[u] + w < dist[v]) {\n            dist[v] = dist[u] + w;\n            pq.push({dist[v], v});\n        }\n    }\n}', NULL);

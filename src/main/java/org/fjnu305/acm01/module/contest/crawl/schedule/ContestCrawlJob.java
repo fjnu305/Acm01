@@ -2,6 +2,8 @@ package org.fjnu305.acm01.module.contest.crawl.schedule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.fjnu305.acm01.Common.enums.CrawlTriggerType;
+import org.fjnu305.acm01.Common.job.RedisJobLock;
+import org.fjnu305.acm01.module.contest.crawl.config.CrawlScheduleProperties;
 import org.fjnu305.acm01.module.contest.crawl.service.ContestCrawlService;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;
@@ -9,25 +11,34 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 /**
  * Quartz 定时触发赛事爬虫，调用 {@link ContestCrawlService#crawlAll(CrawlTriggerType)}。
- * <p>
- * 与 {@link org.fjnu305.acm01.module.contest.controller.ContestAdminController} 手动触发共用同一套爬取链路，
- * 日志中 {@code trigger_type=AUTO} 用于区分。
- * </p>
  */
 @Slf4j
 @Component
 @DisallowConcurrentExecution
 public class ContestCrawlJob extends QuartzJobBean {
 
+    public static final String LOCK_KEY = "job:contest-crawl";
+
     @Autowired
     private ContestCrawlService contestCrawlService;
 
+    @Autowired
+    private RedisJobLock redisJobLock;
+
+    @Autowired
+    private CrawlScheduleProperties scheduleProperties;
+
     @Override
     protected void executeInternal(JobExecutionContext context) {
-        log.info("Contest crawl auto job started");
-        contestCrawlService.crawlAll(CrawlTriggerType.AUTO);
-        log.info("Contest crawl auto job finished");
+        int ttlMinutes = Math.max(1, scheduleProperties.getLockTtlMinutes());
+        redisJobLock.tryRun(LOCK_KEY, Duration.ofMinutes(ttlMinutes), () -> {
+            log.info("Contest crawl auto job started");
+            contestCrawlService.crawlAll(CrawlTriggerType.AUTO);
+            log.info("Contest crawl auto job finished");
+        });
     }
 }

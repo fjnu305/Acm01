@@ -17,4 +17,5 @@ public class NotifyTaskEntity {
     private String errorMessage;
     private String idempotentKey;
     private LocalDateTime createdTime;
+    private LocalDateTime claimedAt;
 }

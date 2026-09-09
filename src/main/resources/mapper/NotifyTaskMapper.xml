@@ -3,6 +3,11 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.fjnu305.acm01.module.notify.mapper.NotifyTaskMapper">
 
+    <sql id="Base_Column_List">
+        id, subscription_id, channel, scheduled_at, status,
+        sent_at, retry_count, error_message, idempotent_key, created_time, claimed_at
+    </sql>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO notify_task (subscription_id, channel, scheduled_at, status,
                                  retry_count, idempotent_key)
@@ -11,35 +16,63 @@
     </insert>
 
     <select id="selectById" resultType="org.fjnu305.acm01.module.notify.entity.NotifyTaskEntity">
-        SELECT id, subscription_id, channel, scheduled_at, status,
-               sent_at, retry_count, error_message, idempotent_key, created_time
+        SELECT <include refid="Base_Column_List"/>
         FROM notify_task
         WHERE id = #{id}
     </select>
 
     <select id="selectByIdempotentKey" resultType="org.fjnu305.acm01.module.notify.entity.NotifyTaskEntity">
-        SELECT id, subscription_id, channel, scheduled_at, status,
-               sent_at, retry_count, error_message, idempotent_key, created_time
+        SELECT <include refid="Base_Column_List"/>
         FROM notify_task
         WHERE idempotent_key = #{idempotentKey}
         LIMIT 1
     </select>
 
     <select id="selectDueTasks" resultType="org.fjnu305.acm01.module.notify.entity.NotifyTaskEntity">
-        SELECT id, subscription_id, channel, scheduled_at, status,
-               sent_at, retry_count, error_message, idempotent_key, created_time
+        SELECT <include refid="Base_Column_List"/>
         FROM notify_task
-        WHERE status IN ('PENDING', 'FAILED')
+        WHERE status = 'PENDING'
           AND scheduled_at &lt;= NOW()
         ORDER BY scheduled_at
         LIMIT #{limit}
+        FOR UPDATE SKIP LOCKED
     </select>
+
+    <update id="markProcessing">
+        UPDATE notify_task
+        SET status = 'PROCESSING', claimed_at = NOW()
+        WHERE status = 'PENDING'
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="reclaimStaleProcessing">
+        UPDATE notify_task
+        SET status = 'PENDING',
+            claimed_at = NULL,
+            error_message = 'Stale PROCESSING reclaimed'
+        WHERE status = 'PROCESSING'
+          AND (claimed_at IS NULL
+            OR claimed_at &lt; DATE_SUB(NOW(), INTERVAL #{staleSeconds} SECOND))
+    </update>
+
+    <update id="releaseToPending">
+        UPDATE notify_task
+        SET status = 'PENDING', claimed_at = NULL
+        WHERE status = 'PROCESSING'
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
 
     <update id="markSent">
         UPDATE notify_task
-        SET status = 'SENT', sent_at = NOW(), error_message = NULL
+        SET status = 'SENT', sent_at = NOW(), error_message = NULL, claimed_at = NULL
         WHERE id = #{id}
-          AND status IN ('PENDING', 'FAILED')
+          AND status IN ('PENDING', 'FAILED', 'PROCESSING')
     </update>
 
     <update id="markFailed">
@@ -48,9 +81,24 @@
         WHERE id = #{id}
     </update>
 
+    <update id="markDead">
+        UPDATE notify_task
+        SET status = 'DEAD', error_message = #{errorMessage}
+        WHERE id = #{id}
+    </update>
+
+    <update id="markDeadBatch">
+        UPDATE notify_task
+        SET status = 'DEAD', error_message = #{errorMessage}
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
     <update id="incrementRetry">
         UPDATE notify_task
-        SET status = 'PENDING', retry_count = retry_count + 1, error_message = #{errorMessage}
+        SET status = 'PENDING', retry_count = retry_count + 1, error_message = #{errorMessage}, claimed_at = NULL
         WHERE id = #{id}
     </update>
 
@@ -58,7 +106,7 @@
         UPDATE notify_task
         SET status = 'CANCELLED'
         WHERE subscription_id = #{subscriptionId}
-          AND status = 'PENDING'
+          AND status IN ('PENDING', 'PROCESSING')
     </update>
 
     <update id="reactivate">
@@ -68,14 +116,14 @@
             status = 'PENDING',
             sent_at = NULL,
             retry_count = 0,
-            error_message = NULL
+            error_message = NULL,
+            claimed_at = NULL
         WHERE id = #{id}
           AND status = 'CANCELLED'
     </update>
 
     <select id="selectPendingBySubscriptionId" resultType="org.fjnu305.acm01.module.notify.entity.NotifyTaskEntity">
-        SELECT id, subscription_id, channel, scheduled_at, status,
-               sent_at, retry_count, error_message, idempotent_key, created_time
+        SELECT <include refid="Base_Column_List"/>
         FROM notify_task
         WHERE subscription_id = #{subscriptionId}
           AND status = 'PENDING'
@@ -93,7 +141,7 @@
         UPDATE notify_task
         SET status = 'CANCELLED'
         WHERE id = #{id}
-          AND status = 'PENDING'
+          AND status IN ('PENDING', 'PROCESSING')
     </update>
 
     <update id="incrementRetryWithBackoff">
@@ -101,7 +149,9 @@
         SET status = 'PENDING',
             retry_count = retry_count + 1,
             error_message = #{errorMessage},
-            scheduled_at = DATE_ADD(NOW(), INTERVAL #{backoffSeconds} SECOND)
+            scheduled_at = DATE_ADD(NOW(), INTERVAL #{backoffSeconds} SECOND),
+            claimed_at = NULL
         WHERE id = #{id}
+          AND status IN ('PROCESSING', 'FAILED', 'PENDING')
     </update>
 </mapper>

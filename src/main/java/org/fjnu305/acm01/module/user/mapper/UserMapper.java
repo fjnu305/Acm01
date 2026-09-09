@@ -13,6 +13,8 @@ public interface UserMapper {
 
     UserEntity selectById(@Param("id") Long id);
 
+    List<UserEntity> selectByIds(@Param("ids") List<Long> ids);
+
     int countByUsername(@Param("username") String username);
 
     int insert(UserEntity user);
@@ -36,6 +38,8 @@ public interface UserMapper {
     int updateCfRating(@Param("id") Long id, @Param("cfRating") Integer cfRating);
 
     int updateCfHandle(@Param("id") Long id, @Param("cfHandle") String cfHandle);
+
+    int updateContestCount(@Param("id") Long id, @Param("contestCount") int contestCount);
 
     List<Long> selectActiveUserIds();
 

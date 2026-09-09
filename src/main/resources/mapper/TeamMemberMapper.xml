@@ -47,7 +47,8 @@
 
     <select id="selectAcceptedPreviewByTeamPostId"
             resultType="org.fjnu305.acm01.module.team.vo.TeamMemberPreviewVO">
-        SELECT m.user_id AS userId,
+        SELECT m.team_post_id AS teamPostId,
+               m.user_id AS userId,
                u.username,
                u.nickname,
                u.avatar
@@ -56,6 +57,23 @@
         WHERE m.team_post_id = #{teamPostId}
           AND m.status = 1
         ORDER BY m.joined_time ASC
+    </select>
+
+    <select id="selectAcceptedPreviewByTeamPostIds"
+            resultType="org.fjnu305.acm01.module.team.vo.TeamMemberPreviewVO">
+        SELECT m.team_post_id AS teamPostId,
+               m.user_id AS userId,
+               u.username,
+               u.nickname,
+               u.avatar
+        FROM team_member m
+                 INNER JOIN user u ON u.id = m.user_id AND u.deleted = 0
+        WHERE m.status = 1
+          AND m.team_post_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY m.team_post_id ASC, m.joined_time ASC
     </select>
 
     <select id="selectMemberUserIds" resultType="long">

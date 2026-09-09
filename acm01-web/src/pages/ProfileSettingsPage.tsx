@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { ApiError, updateProfile, uploadAvatar } from '../api/auth'
+import { ApiError, fetchCurrentUser, updateProfile, uploadAvatar } from '../api/auth'
+import { bindCfHandle } from '../api/sync'
 import { useAuth } from '../context/AuthContext'
+import CfRatingChart from '../components/CfRatingChart'
 import PageHeader from '../components/PageHeader'
 import UserAvatar from '../components/UserAvatar'
 
@@ -11,6 +13,8 @@ export default function ProfileSettingsPage() {
   const [email, setEmail] = useState('')
   const [school, setSchool] = useState('')
   const [bio, setBio] = useState('')
+  const [cfHandle, setCfHandle] = useState('')
+  const [bindingCf, setBindingCf] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -23,6 +27,7 @@ export default function ProfileSettingsPage() {
     setEmail(user.email || '')
     setSchool(user.school || '')
     setBio(user.bio || '')
+    setCfHandle(user.cfHandle || '')
     setAvatarPreview(null)
   }, [user])
 
@@ -98,6 +103,30 @@ export default function ProfileSettingsPage() {
       setUploadingAvatar(false)
     }
   }
+
+  const handleBindCf = async () => {
+    const handle = cfHandle.trim()
+    if (!handle) {
+      setError('请输入 Codeforces 账号')
+      return
+    }
+    setError('')
+    setSuccess('')
+    setBindingCf(true)
+    try {
+      await bindCfHandle(handle)
+      const refreshed = await fetchCurrentUser()
+      setUser(refreshed)
+      setSuccess('Codeforces 账号已绑定并同步 Rating')
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : '绑定失败，请稍后重试'
+      setError(msg)
+    } finally {
+      setBindingCf(false)
+    }
+  }
+
+  const cfHistory = user.cfRatingHistory ?? []
 
   const previewUser = {
     ...user,
@@ -206,6 +235,28 @@ export default function ProfileSettingsPage() {
             </label>
 
             <label className="form-item">
+              <span>Codeforces 账号</span>
+              <div className="profile-cf-bind">
+                <input
+                  type="text"
+                  value={cfHandle}
+                  onChange={(e) => setCfHandle(e.target.value)}
+                  placeholder="绑定 CF handle 自动同步 Rating"
+                  maxLength={50}
+                  disabled={loading || uploadingAvatar || bindingCf}
+                />
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={handleBindCf}
+                  disabled={loading || uploadingAvatar || bindingCf}
+                >
+                  {bindingCf ? '同步中…' : '绑定同步'}
+                </button>
+              </div>
+            </label>
+
+            <label className="form-item">
               <span>个人简介</span>
               <textarea
                 value={bio}
@@ -229,6 +280,12 @@ export default function ProfileSettingsPage() {
           </form>
         </section>
       </div>
+
+      <CfRatingChart
+        handle={user.cfHandle}
+        currentRating={user.cfRating}
+        history={cfHistory}
+      />
     </div>
   )
 }

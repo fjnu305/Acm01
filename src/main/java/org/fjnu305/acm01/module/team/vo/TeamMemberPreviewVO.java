@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class TeamMemberPreviewVO {
 
+    private Long teamPostId;
     private Long userId;
     private String username;
     private String nickname;

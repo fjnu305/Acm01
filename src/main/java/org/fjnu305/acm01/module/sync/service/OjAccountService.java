@@ -4,11 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.fjnu305.acm01.Common.exception.BusinessException;
 import org.fjnu305.acm01.Common.exception.ErrorCode;
 import org.fjnu305.acm01.module.sync.dto.BindCfHandleRequest;
+import org.fjnu305.acm01.module.sync.entity.CfRatingHistoryEntity;
 import org.fjnu305.acm01.module.sync.entity.OjAccountEntity;
 import org.fjnu305.acm01.module.sync.entity.UserRatingSnapshotEntity;
+import org.fjnu305.acm01.module.sync.mapper.CfRatingHistoryMapper;
 import org.fjnu305.acm01.module.sync.mapper.OjAccountMapper;
 import org.fjnu305.acm01.module.sync.mapper.UserRatingSnapshotMapper;
 import org.fjnu305.acm01.module.sync.vault.CredentialVault;
+import org.fjnu305.acm01.module.sync.vo.CfRatingChangeVO;
 import org.fjnu305.acm01.module.sync.vo.OjAccountVO;
 import org.fjnu305.acm01.module.sync.vo.RatingSnapshotVO;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,7 @@ public class OjAccountService {
 
     private final OjAccountMapper ojAccountMapper;
     private final UserRatingSnapshotMapper snapshotMapper;
+    private final CfRatingHistoryMapper historyMapper;
     private final CredentialVault credentialVault;
     private final RatingSyncService ratingSyncService;
 
@@ -65,8 +69,15 @@ public class OjAccountService {
     }
 
     public List<RatingSnapshotVO> listRatingSnapshots(Long userId) {
-        return snapshotMapper.selectByUserId(userId).stream()
+        return snapshotMapper.selectRecentByUserAndPlatform(userId, RatingSyncService.PLATFORM_CODEFORCES, 90)
+                .stream()
                 .map(this::toSnapshotVo)
+                .toList();
+    }
+
+    public List<CfRatingChangeVO> listCfRatingHistory(Long userId) {
+        return historyMapper.selectByUserId(userId).stream()
+                .map(this::toHistoryVo)
                 .toList();
     }
 
@@ -93,6 +104,17 @@ public class OjAccountService {
                 .maxRating(entity.getMaxRating())
                 .rank(entity.getRank())
                 .snapshotDate(entity.getSnapshotDate())
+                .build();
+    }
+
+    private CfRatingChangeVO toHistoryVo(CfRatingHistoryEntity entity) {
+        return CfRatingChangeVO.builder()
+                .contestId(entity.getContestId())
+                .contestName(entity.getContestName())
+                .rank(entity.getRank())
+                .oldRating(entity.getOldRating())
+                .newRating(entity.getNewRating())
+                .ratedAt(entity.getRatedAt())
                 .build();
     }
 

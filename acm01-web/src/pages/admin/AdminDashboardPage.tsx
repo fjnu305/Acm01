@@ -51,16 +51,14 @@ export default function AdminDashboardPage() {
           <h3>赛事数据</h3>
           <p>浏览全平台赛事列表，按状态与来源筛选</p>
         </Link>
-        <article className="quick-card disabled">
+        <Link to="/admin/logs" className="quick-card">
           <h3>爬取日志</h3>
           <p>按批次查看爬取结果与错误详情</p>
-          <span className="badge-soon">即将上线</span>
-        </article>
-        <article className="quick-card disabled">
+        </Link>
+        <Link to="/admin/users" className="quick-card">
           <h3>用户管理</h3>
           <p>账号状态、角色与权限配置</p>
-          <span className="badge-soon">即将上线</span>
-        </article>
+        </Link>
       </section>
     </div>
   )

@@ -2,6 +2,7 @@ package org.fjnu305.acm01.module.solution.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.fjnu305.acm01.module.solution.dto.UserTagAggregate;
 import org.fjnu305.acm01.module.solution.entity.SolutionEntity;
 import org.fjnu305.acm01.module.solution.vo.SolutionDetailVO;
 import org.fjnu305.acm01.module.solution.vo.SolutionVO;
@@ -48,5 +49,9 @@ public interface SolutionMapper {
 
     String selectAggregatedTagsByUserId(@Param("userId") Long userId);
 
+    List<UserTagAggregate> selectAggregatedTagsByUserIds(@Param("userIds") List<Long> userIds);
+
     List<String> selectAllTags();
+
+    List<SolutionEntity> selectPublishedTagRows();
 }

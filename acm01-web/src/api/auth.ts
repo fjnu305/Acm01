@@ -4,6 +4,15 @@ export interface Result<T> {
   data: T
 }
 
+export interface CfRatingChange {
+  contestId: number
+  contestName: string
+  rank?: number
+  oldRating: number
+  newRating: number
+  ratedAt: string
+}
+
 export interface UserInfo {
   userId: number
   username: string
@@ -12,11 +21,22 @@ export interface UserInfo {
   avatar?: string
   school?: string
   bio?: string
+  cfHandle?: string
   cfRating?: number
   solvedCount?: number
   acCount?: number
   contestCount?: number
   roles: string[]
+  ratingSnapshots?: RatingSnapshot[]
+  cfRatingHistory?: CfRatingChange[]
+}
+
+export interface RatingSnapshot {
+  platform: string
+  rating: number
+  maxRating?: number
+  rank?: string
+  snapshotDate: string
 }
 
 export interface AuthResponse {

@@ -3,13 +3,17 @@ package org.fjnu305.acm01.module.contest.crawl.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fjnu305.acm01.module.contest.dto.ContestDTO;
+import org.fjnu305.acm01.module.contest.event.ContestCatalogChangedEvent;
+import org.fjnu305.acm01.module.contest.event.ContestScheduleChangedEvent;
 import org.fjnu305.acm01.module.contest.log.dto.ContestPersistCountsDTO;
 import org.fjnu305.acm01.module.contest.entity.ContestEntity;
 import org.fjnu305.acm01.module.contest.crawl.mapper.ContestPersistMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -23,6 +27,7 @@ import java.util.Objects;
 public class ContestPersistService {
 
     private final ContestPersistMapper contestPersistMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ContestPersistCountsDTO persistAll(List<ContestDTO> contests) {
@@ -56,21 +61,25 @@ public class ContestPersistService {
             keys.add(key);
         }
 
-        Map<String, String> existingHash = new HashMap<>();
-        for (ContestEntity existing : contestPersistMapper.selectRawHashByKeys(keys)) {
-            existingHash.put(existing.getSource() + '\0' + existing.getExternalId(), existing.getRawHash());
+        Map<String, ContestEntity> existingByKey = new HashMap<>();
+        for (ContestEntity existing : contestPersistMapper.selectSnapshotByKeys(keys)) {
+            existingByKey.put(existing.getSource() + '\0' + existing.getExternalId(), existing);
         }
 
         List<ContestEntity> toInsert = new ArrayList<>();
         List<ContestEntity> toUpdate = new ArrayList<>();
+        List<ContestScheduleChangedEvent> scheduleChanges = new ArrayList<>();
         int skippedCount = 0;
         for (ContestEntity entity : incoming.values()) {
             String businessKey = entity.getSource() + '\0' + entity.getExternalId();
-            String oldHash = existingHash.get(businessKey);
-            if (oldHash == null) {
+            ContestEntity existing = existingByKey.get(businessKey);
+            if (existing == null) {
                 toInsert.add(entity);
-            } else if (!Objects.equals(entity.getRawHash(), oldHash)) {
+            } else if (!Objects.equals(entity.getRawHash(), existing.getRawHash())) {
                 toUpdate.add(entity);
+                if (startTimeChanged(existing.getStartTime(), entity.getStartTime()) && existing.getId() != null) {
+                    scheduleChanges.add(new ContestScheduleChangedEvent(existing.getId(), entity.getStartTime()));
+                }
             } else {
                 skippedCount++;
             }
@@ -83,6 +92,13 @@ public class ContestPersistService {
         log.info("contest persist done: fetched={}, insert={}, update={}, skip={}, ignore={}",
                 fetchedCount, insertedCount, updatedCount, skippedCount, ignoredCount);
 
+        for (ContestScheduleChangedEvent event : scheduleChanges) {
+            eventPublisher.publishEvent(event);
+        }
+        if (insertedCount > 0 || updatedCount > 0) {
+            eventPublisher.publishEvent(new ContestCatalogChangedEvent(insertedCount, updatedCount));
+        }
+
         return ContestPersistCountsDTO.builder()
                 .fetchedCount(fetchedCount)
                 .insertedCount(insertedCount)
@@ -90,6 +106,10 @@ public class ContestPersistService {
                 .skippedCount(skippedCount)
                 .ignoredCount(ignoredCount)
                 .build();
+    }
+
+    private static boolean startTimeChanged(LocalDateTime previous, LocalDateTime next) {
+        return previous != null && next != null && !previous.equals(next);
     }
 
     private boolean isValid(ContestDTO dto) {

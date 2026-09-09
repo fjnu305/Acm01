@@ -155,6 +155,19 @@ class AnonymousEndpointSecurityTest extends AbstractSecurityFilterTestSupport {
     }
 
     @Test
+    void teamMine_anonymous_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/teams/mine"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
+    void teamList_anonymous_returnsOk() throws Exception {
+        mockMvc.perform(get("/api/teams"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void listTeams_anonymous_returnsOk() throws Exception {
         when(teamService.list(any(), any(), anyInt(), anyInt()))
                 .thenReturn(org.fjnu305.acm01.Common.result.PageResult.of(List.of(), 0, 1, 20));
